@@ -1,16 +1,20 @@
 # Bili Music
 
-A music player.
+使用 Flutter 开发的，以 BiliBili 为音频源的音乐播放器。
 
-## Getting Started
+![demo](doc/demo.png)
 
-This project is a starting point for a Flutter application.
+## 功能
 
-A few resources to get you started if this is your first Flutter project:
+- [x] 媒体搜索
+- [x] 音乐播放
+- [ ] 收藏夹导入
+- [ ] 下载
+- [ ] More
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## 感谢
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- [bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect): 哔哩哔哩第三方 API 收集参考
+
+
+
