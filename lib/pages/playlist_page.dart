@@ -1,0 +1,220 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:bili_music/services/bili_service.dart';
+import 'package:bili_music/services/audio_play_service.dart';
+import 'package:bili_music/models/song_model.dart';
+import 'package:bili_music/services/playlist_service.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:just_audio/just_audio.dart';
+
+
+class PlayListPageController extends GetxController {
+  final biliService = Get.find<BiliService>();
+  final audioPlayService = Get.find<AudioPlayService>();
+  final playListService = Get.find<PlayListService>();
+  final playerId = 'playlistPage';
+
+  Rx<Duration> duration = Duration.zero.obs;
+  Rx<Duration> position = Duration.zero.obs;
+  Rx<bool> isPlaying = false.obs;
+  Rx<int> currentIndex = (-1).obs;
+  Rx<String> currentTitle = ''.obs;
+  Rx<String> currentAuthor = ''.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    audioPlayService.getPlayerPosition(playerId).listen((p) => position.value = p);
+    audioPlayService.getPlayerDuration(playerId).listen((d) => duration.value = d ?? Duration.zero);
+    audioPlayService.getPlayerState(playerId).listen((state) async {
+      isPlaying.value = state.playing;
+
+      if (state.processingState == ProcessingState.completed){
+        final index = (currentIndex.value + 1) % (await getBox()).length;
+        await play(index);
+      }
+    });
+  }
+
+  Future<Box<Song>> getBox() async {
+    if (playListService.isInit) {
+      return playListService.getBox();
+    } else {
+      return await playListService.init();
+    }
+  }
+
+  Future<void> play(int index) async {
+    currentIndex.value = index;
+
+    final box = await getBox();
+    final song = box.getAt(index)!;
+    currentTitle.value = song.title;
+    currentAuthor.value = song.author;
+
+    final audioUrl = await biliService.getAudioUrl(song.bvid, cid: song.cid);
+    await audioPlayService.play(playerId, url: audioUrl);
+  }
+
+  Future<void> playPrevious() async {
+    final length = (await getBox()).length;
+    final index = (currentIndex.value + length - 1) % length;
+    await play(index);
+  }
+
+  Future<void> playNext() async {
+    final index = (currentIndex.value + 1) % (await getBox()).length;
+    await play(index);
+  }
+
+  Future<void> pause() async {
+    await audioPlayService.pause(playerId);
+  }
+
+  Future<void> resume() async {
+    await audioPlayService.play(playerId);
+  }
+
+  Future<void> seek(Duration position) async {
+    await audioPlayService.seek(playerId, position);
+  }
+}
+
+class PlayListPage extends StatelessWidget {
+  PlayListPage({super.key});
+
+  final controller = Get.put(PlayListPageController());
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        children: [
+          Expanded(
+            child: FutureBuilder<Box<Song>>(
+              future: controller.getBox(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                } else if (snapshot.hasData) {
+                  return ValueListenableBuilder(
+                    valueListenable: snapshot.data!.listenable(),
+                    builder: (context, Box box, _) {
+                      return ListView.builder(
+                        itemCount: box.length,
+                        itemBuilder: (context, index) {
+                          return InkWell(
+                            child: ListTile(
+                              leading: const Icon(Icons.music_note_rounded),
+                              title: Text(box.getAt(index)!.title, style: TextStyle(fontSize: 24.sp),
+                              ),
+                              subtitle: Text(box.getAt(index)!.author, style: TextStyle(fontSize: 20.sp, color: Colors.grey)),
+                            ),
+                            onTap: (){
+                              controller.play(index);
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                } else {
+                  return const Center(child: Text('Unknown error'));
+                }
+              },
+            )
+          ),
+          Obx(
+            () => Container(
+              margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8).r,
+              padding: const EdgeInsets.only(left: 16, right: 4, bottom: 8, top: 16).r,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryFixedDim,
+                borderRadius: BorderRadius.circular(16).r
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.library_music_rounded, size: 64.sp, color: Colors.black45,),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.only(left: 16, right: 16).r,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(controller.currentTitle.value, style: TextStyle(fontSize: 24.sp)),
+                                  SizedBox(height: 6.sp),
+                                  Text(controller.currentAuthor.value, style: TextStyle(fontSize: 20.sp, color: Colors.black45)),
+                                ],
+                              )
+                            ),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.skip_previous_outlined),
+                                  iconSize: 48.sp,
+                                  onPressed: () async {
+                                    await controller.playPrevious();
+                                  }
+                                ),
+                                IconButton(
+                                  icon: Icon(controller.isPlaying.value? Icons.pause_circle_outline_outlined : Icons.play_circle_outline_outlined),
+                                  iconSize: 64.sp,
+                                  onPressed: () async {
+                                    if (controller.isPlaying.value){
+                                      await controller.pause();
+                                    }
+                                    else if (controller.currentIndex.value == -1){
+                                      controller.play(0);
+                                    }
+                                    else{
+                                      await controller.resume();
+                                    }
+                                  }
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.skip_next_outlined),
+                                  iconSize: 48.sp,
+                                  onPressed: () async {
+                                    await controller.playNext();
+                                  }
+                                ),
+                              ]
+                            )
+                          ],
+                        ),
+                        SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                              thumbShape: RoundSliderThumbShape(enabledThumbRadius: 8.r),
+                              overlayShape: RoundSliderOverlayShape(overlayRadius: 24.r),
+                              trackHeight: 2.r
+                          ),
+                          child: Slider(
+                            value: controller.position.value.inSeconds.toDouble(),
+                            min: 0,
+                            max: controller.duration.value.inSeconds.toDouble(),
+                            onChanged: (value) {
+                              controller.seek(Duration(seconds: value.toInt()));
+                            },
+                          )
+                        )
+                      ],
+                    )
+                  )
+                ],
+              )
+            )
+          )
+        ]
+      )
+    );
+  }
+}
