@@ -43,14 +43,30 @@ class MyApp extends StatelessWidget {
 
 class NavigationController extends GetxController {
   RxInt selectedIndex = 0.obs;
+  late PageController pageController;
+
+  @override
+  void onInit() {
+    super.onInit();
+    pageController = PageController(initialPage: 0);
+  }
 
   final List<Widget> pages = [
     PlayListPage(),
     SearchPage(),
   ];
 
-  void changePage(int index) {
+  void onPageChanged(int index) {
     selectedIndex.value = index;
+  }
+
+  void onItemTapped(int index) {
+    selectedIndex.value = index;
+    pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+    );
   }
 }
 
@@ -67,10 +83,15 @@ class TabPage extends StatelessWidget {
         )),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: Obx(() => controller.pages[controller.selectedIndex.value]),
+      body: PageView(
+        controller: controller.pageController,
+        onPageChanged: controller.onPageChanged,
+        children: controller.pages,
+        physics: const NeverScrollableScrollPhysics()
+      ),
       bottomNavigationBar: Obx(() => SnakeNavigationBar.color(
         currentIndex: controller.selectedIndex.value,
-        onTap: controller.changePage,
+        onTap: controller.onItemTapped,
         snakeViewColor: Theme.of(context).colorScheme.primaryFixedDim,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.black45,
