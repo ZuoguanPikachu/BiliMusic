@@ -31,8 +31,7 @@ class PlayListPageController extends GetxController {
       isPlaying.value = state.playing;
 
       if (state.processingState == ProcessingState.completed){
-        final index = (currentIndex.value + 1) % (await getBox()).length;
-        await play(index);
+        await playNext();
       }
     });
   }
@@ -92,128 +91,147 @@ class PlayListPage extends StatelessWidget {
       child: Column(
         children: [
           Expanded(
-            child: FutureBuilder<Box<Song>>(
-              future: controller.getBox(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                } else if (snapshot.hasData) {
-                  return ValueListenableBuilder(
-                    valueListenable: snapshot.data!.listenable(),
-                    builder: (context, Box box, _) {
-                      return ListView.builder(
-                        itemCount: box.length,
-                        itemBuilder: (context, index) {
-                          return InkWell(
-                            child: ListTile(
-                              leading: const Icon(Icons.music_note_rounded),
-                              title: Text(box.getAt(index)!.title, style: TextStyle(fontSize: 24.sp),
-                              ),
-                              subtitle: Text(box.getAt(index)!.author, style: TextStyle(fontSize: 20.sp, color: Colors.grey)),
-                            ),
-                            onTap: (){
-                              controller.play(index);
-                            }
-                          );
-                        }
-                      );
+            child: SongList(controller: controller),
+          ),
+          NowPlayingBar(controller: controller)
+        ]
+      )
+    );
+  }
+}
+
+
+class SongList extends StatelessWidget {
+  final PlayListPageController controller;
+  const SongList({super.key, required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Box<Song>>(
+      future: controller.getBox(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (snapshot.hasData) {
+          return ValueListenableBuilder(
+            valueListenable: snapshot.data!.listenable(),
+            builder: (context, Box box, _) {
+              return ListView.builder(
+                itemCount: box.length,
+                itemBuilder: (context, index) {
+                  return InkWell(
+                    child: ListTile(
+                      leading: const Icon(Icons.music_note_rounded),
+                      title: Text(box.getAt(index)!.title, style: TextStyle(fontSize: 24.sp),
+                      ),
+                      subtitle: Text(box.getAt(index)!.author, style: TextStyle(fontSize: 20.sp, color: Colors.grey)),
+                    ),
+                    onTap: (){
+                      controller.play(index);
                     }
                   );
-                } else {
-                  return const Center(child: Text('Unknown error'));
                 }
-              },
-            )
-          ),
-          Obx(
-            () => Container(
-              margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8).r,
-              padding: const EdgeInsets.only(left: 16, right: 4, bottom: 8, top: 16).r,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryFixedDim,
-                borderRadius: BorderRadius.circular(16).r
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.library_music_rounded, size: 64.sp, color: Colors.black45,),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              );
+            }
+          );
+        } else {
+          return const Center(child: Text('Unknown error'));
+        }
+      },
+    );
+  }
+}
+
+class NowPlayingBar extends StatelessWidget {
+  final PlayListPageController controller;
+  const NowPlayingBar({super.key, required this.controller});
+  
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8).r,
+      padding: const EdgeInsets.only(left: 16, right: 4, bottom: 8, top: 16).r,
+      decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryFixedDim,
+          borderRadius: BorderRadius.circular(16).r
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.library_music_rounded, size: 64.sp, color: Colors.black45,),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.only(left: 16, right: 16).r,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Obx(() => Text(controller.currentTitle.value, style: TextStyle(fontSize: 24.sp))),
+                          SizedBox(height: 6.sp),
+                          Obx(() => Text(controller.currentAuthor.value, style: TextStyle(fontSize: 20.sp, color: Colors.black45))),
+                        ],
+                      )
+                    ),
+                    Row(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.only(left: 16, right: 16).r,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(controller.currentTitle.value, style: TextStyle(fontSize: 24.sp)),
-                                  SizedBox(height: 6.sp),
-                                  Text(controller.currentAuthor.value, style: TextStyle(fontSize: 20.sp, color: Colors.black45)),
-                                ],
-                              )
-                            ),
-                            Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.skip_previous_outlined),
-                                  iconSize: 48.sp,
-                                  onPressed: () async {
-                                    await controller.playPrevious();
-                                  }
-                                ),
-                                IconButton(
-                                  icon: Icon(controller.isPlaying.value? Icons.pause_circle_outline_outlined : Icons.play_circle_outline_outlined),
-                                  iconSize: 64.sp,
-                                  onPressed: () async {
-                                    if (controller.isPlaying.value){
-                                      await controller.pause();
-                                    }
-                                    else if (controller.currentIndex.value == -1){
-                                      controller.play(0);
-                                    }
-                                    else{
-                                      await controller.resume();
-                                    }
-                                  }
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.skip_next_outlined),
-                                  iconSize: 48.sp,
-                                  onPressed: () async {
-                                    await controller.playNext();
-                                  }
-                                ),
-                              ]
-                            )
-                          ],
+                        IconButton(
+                          icon: const Icon(Icons.skip_previous_outlined),
+                          iconSize: 48.sp,
+                          onPressed: () async {
+                            await controller.playPrevious();
+                          }
                         ),
-                        SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                              thumbShape: RoundSliderThumbShape(enabledThumbRadius: 8.r),
-                              overlayShape: RoundSliderOverlayShape(overlayRadius: 24.r),
-                              trackHeight: 2.r
-                          ),
-                          child: Slider(
-                            value: controller.position.value.inSeconds.toDouble(),
-                            min: 0,
-                            max: controller.duration.value.inSeconds.toDouble(),
-                            onChanged: (value) {
-                              controller.seek(Duration(seconds: value.toInt()));
-                            },
-                          )
-                        )
-                      ],
+                        Obx(() => IconButton(
+                          icon: Icon(controller.isPlaying.value? Icons.pause_circle_outline_outlined : Icons.play_circle_outline_outlined),
+                          iconSize: 64.sp,
+                          onPressed: () async {
+                            if (controller.isPlaying.value){
+                              await controller.pause();
+                            }
+                            else if (controller.currentIndex.value == -1){
+                              controller.play(0);
+                            }
+                            else{
+                              await controller.resume();
+                            }
+                          }
+                        )),
+                        IconButton(
+                          icon: const Icon(Icons.skip_next_outlined),
+                          iconSize: 48.sp,
+                          onPressed: () async {
+                            await controller.playNext();
+                          }
+                        ),
+                      ]
                     )
-                  )
-                ],
-              )
+                  ],
+                ),
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                      thumbShape: RoundSliderThumbShape(enabledThumbRadius: 8.r),
+                      overlayShape: RoundSliderOverlayShape(overlayRadius: 24.r),
+                      trackHeight: 2.r
+                  ),
+                  child: Obx(() => Slider(
+                    value: controller.position.value.inSeconds.toDouble(),
+                    min: 0,
+                    max: controller.duration.value.inSeconds.toDouble(),
+                    onChanged: (value) {
+                      controller.seek(Duration(seconds: value.toInt()));
+                    },
+                  ))
+                )
+              ],
             )
           )
-        ]
+        ],
       )
     );
   }
