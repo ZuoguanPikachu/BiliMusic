@@ -152,7 +152,7 @@ class SearchResultItem extends StatelessWidget {
                         IconButton(
                           icon: const Icon(Icons.add),
                           iconSize: 32.r,
-                          onPressed: () => _showPopupDialog(context, item, controller),
+                          onPressed: () => _showAddSongDialog(context, item, controller),
                         )
                       ],
                     )
@@ -167,7 +167,7 @@ class SearchResultItem extends StatelessWidget {
   }
 }
 
-void _showPopupDialog(BuildContext context, Map<String, dynamic> itemInfo, SearchPageController controller) {
+void _showAddSongDialog(BuildContext context, Map<String, dynamic> itemInfo, SearchPageController controller) {
   final titleController = TextEditingController(text: itemInfo['title']);
   final authorController = TextEditingController();
 
@@ -200,7 +200,9 @@ void _showPopupDialog(BuildContext context, Map<String, dynamic> itemInfo, Searc
               final cid = await controller.getCid(itemInfo['bvid']!);
               final song = Song(itemInfo['bvid']!, cid, titleController.text, authorController.text);
               await controller.addToPlaylist(song);
-              Navigator.of(context).pop();
+              if (context.mounted) {
+                Navigator.of(context).pop();
+              }
             },
             child: const Text('ADD'),
           )

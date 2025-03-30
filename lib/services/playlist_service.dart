@@ -26,4 +26,9 @@ class PlayListService {
     final box = getBox();
     await box.put('${song.bvid}-${song.cid}', song);
   }
+
+  Future<void> removeSong(int index) async {
+    final box = getBox();
+    box.deleteAt(index);
+  }
 }

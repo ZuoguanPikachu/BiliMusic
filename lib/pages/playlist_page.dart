@@ -78,6 +78,17 @@ class PlayListPageController extends GetxController {
   Future<void> seek(Duration position) async {
     await audioPlayService.seek(playerId, position);
   }
+
+  Future<void> updateSong(Song song) async {
+    await playListService.addSong(song);
+  }
+
+  Future<void> removeSong(int index) async {
+    if (index <= currentIndex.value && currentIndex.value != -1){
+      currentIndex.value -= 1;
+    }
+    await playListService.removeSong(index);
+  }
 }
 
 class PlayListPage extends StatelessWidget {
@@ -120,7 +131,7 @@ class SongList extends StatelessWidget {
               return ListView.builder(
                 itemCount: box.length,
                 itemBuilder: (context, index) {
-                  return SongListItem(index: index, title: box.getAt(index)!.title, author: box.getAt(index)!.author, controller: controller);
+                  return SongListItem(index: index, songItem: box.getAt(index), controller: controller);
                 }
               );
             }
@@ -135,19 +146,25 @@ class SongList extends StatelessWidget {
 
 class SongListItem extends StatelessWidget {
   final int index;
-  final String title;
-  final String author;
+  final Song songItem;
   final PlayListPageController controller;
-  const SongListItem({super.key, required this.index,required this.title, required this.author, required this.controller});
+
+  const SongListItem({super.key, required this.index, required this.songItem, required this.controller});
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       child: ListTile(
         leading: const Icon(Icons.music_note_rounded),
-        title: Text(title, style: TextStyle(fontSize: 24.sp),
+        title: Text(songItem.title, style: TextStyle(fontSize: 24.sp),
         ),
-        subtitle: Text(author, style: TextStyle(fontSize: 20.sp, color: Colors.grey)),
+        subtitle: Text(songItem.author, style: TextStyle(fontSize: 20.sp, color: Colors.grey)),
+        trailing: IconButton(
+          icon: const Icon(Icons.more_vert_rounded),
+          onPressed: () {
+            _showEditDialog(context, index, songItem, controller);
+          },
+        ),
       ),
       onTap: () async {
         await controller.play(index);
@@ -155,7 +172,6 @@ class SongListItem extends StatelessWidget {
     );
   }
 }
-
 
 class NowPlayingBar extends StatelessWidget {
   final PlayListPageController controller;
@@ -249,3 +265,62 @@ class NowPlayingBar extends StatelessWidget {
     );
   }
 }
+
+void _showEditDialog(BuildContext context, int index, Song songItem, PlayListPageController controller) {
+  final titleController = TextEditingController(text: songItem.title);
+  final authorController = TextEditingController(text: songItem.author);
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('Edit Song', style: TextStyle(fontFamily: 'Consolas')),
+        content: SizedBox(
+          width: 500.w,
+          height: 200.h,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextFormField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'Title'),
+              ),
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Author'),
+                controller: authorController,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('DELETE', style: TextStyle(color: Colors.red)),
+            onPressed: () async {
+              await controller.removeSong(index);
+              if (context.mounted){
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+          TextButton(
+            child: const Text('CANCEL'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: const Text('SAVE'),
+            onPressed: () async {
+              await controller.updateSong(Song(songItem.bvid, songItem.cid, titleController.text, authorController.text));
+              if (context.mounted){
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        ],
+      );
+    }
+  );
+}
+
+
