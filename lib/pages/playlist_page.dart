@@ -30,7 +30,7 @@ class PlayListPageController extends GetxController {
     audioPlayService.getPlayerState(playerId).listen((state) async {
       isPlaying.value = state.playing;
 
-      if (state.processingState == ProcessingState.completed){
+      if (state.processingState == ProcessingState.completed && isPlaying.value){
         await playNext();
       }
     });
@@ -128,9 +128,9 @@ class SongList extends StatelessWidget {
                       ),
                       subtitle: Text(box.getAt(index)!.author, style: TextStyle(fontSize: 20.sp, color: Colors.grey)),
                     ),
-                    onTap: (){
-                      controller.play(index);
-                    }
+                    onTap: () async {
+                      await controller.play(index);
+                    },
                   );
                 }
               );
@@ -195,7 +195,7 @@ class NowPlayingBar extends StatelessWidget {
                               await controller.pause();
                             }
                             else if (controller.currentIndex.value == -1){
-                              controller.play(0);
+                              await controller.play(0);
                             }
                             else{
                               await controller.resume();
@@ -223,8 +223,8 @@ class NowPlayingBar extends StatelessWidget {
                     value: controller.position.value.inSeconds.toDouble(),
                     min: 0,
                     max: controller.duration.value.inSeconds.toDouble(),
-                    onChanged: (value) {
-                      controller.seek(Duration(seconds: value.toInt()));
+                    onChanged: (value) async {
+                      await controller.seek(Duration(seconds: value.toInt()));
                     },
                   ))
                 )
