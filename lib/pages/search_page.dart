@@ -135,7 +135,7 @@ class SearchResultItem extends StatelessWidget {
             child: SizedBox(
               height: 150.h,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0).r,
+                padding: const EdgeInsets.only(left: 8.0, right: 16.0, top: 8.0).r,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

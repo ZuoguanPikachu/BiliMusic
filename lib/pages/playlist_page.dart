@@ -100,7 +100,6 @@ class PlayListPage extends StatelessWidget {
   }
 }
 
-
 class SongList extends StatelessWidget {
   final PlayListPageController controller;
   const SongList({super.key, required this.controller});
@@ -121,17 +120,7 @@ class SongList extends StatelessWidget {
               return ListView.builder(
                 itemCount: box.length,
                 itemBuilder: (context, index) {
-                  return InkWell(
-                    child: ListTile(
-                      leading: const Icon(Icons.music_note_rounded),
-                      title: Text(box.getAt(index)!.title, style: TextStyle(fontSize: 24.sp),
-                      ),
-                      subtitle: Text(box.getAt(index)!.author, style: TextStyle(fontSize: 20.sp, color: Colors.grey)),
-                    ),
-                    onTap: () async {
-                      await controller.play(index);
-                    },
-                  );
+                  return SongListItem(index: index, title: box.getAt(index)!.title, author: box.getAt(index)!.author, controller: controller);
                 }
               );
             }
@@ -143,6 +132,30 @@ class SongList extends StatelessWidget {
     );
   }
 }
+
+class SongListItem extends StatelessWidget {
+  final int index;
+  final String title;
+  final String author;
+  final PlayListPageController controller;
+  const SongListItem({super.key, required this.index,required this.title, required this.author, required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      child: ListTile(
+        leading: const Icon(Icons.music_note_rounded),
+        title: Text(title, style: TextStyle(fontSize: 24.sp),
+        ),
+        subtitle: Text(author, style: TextStyle(fontSize: 20.sp, color: Colors.grey)),
+      ),
+      onTap: () async {
+        await controller.play(index);
+      },
+    );
+  }
+}
+
 
 class NowPlayingBar extends StatelessWidget {
   final PlayListPageController controller;
