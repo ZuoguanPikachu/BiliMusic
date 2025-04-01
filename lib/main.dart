@@ -1,13 +1,14 @@
-import 'package:bili_music/services/playlist_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
 import 'package:bili_music/pages/playlist_page.dart';
 import 'package:bili_music/pages/search_page.dart';
-import 'package:bili_music/services/bili_service.dart';
+import 'package:bili_music/pages/config_page.dart';
+import 'package:bili_music/pages/login_page.dart';
 import 'package:bili_music/services/audio_play_service.dart';
-
+import 'package:bili_music/services/bili_service.dart';
+import 'package:bili_music/services/playlist_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -34,7 +35,12 @@ class MyApp extends StatelessWidget {
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
             useMaterial3: true,
           ),
-          home: TabPage(),
+          // home: TabPage(),
+          initialRoute: '/',
+          getPages: [
+            GetPage(name: '/', page: () => TabPage()),
+            GetPage(name: '/login', page: () => LoginPage()),
+          ],
         );
       },
     );
@@ -54,17 +60,14 @@ class NavigationController extends GetxController {
   final List<Widget> pages = [
     PlayListPage(),
     SearchPage(),
+    ConfigPage(),
   ];
-
-  void onPageChanged(int index) {
-    selectedIndex.value = index;
-  }
 
   void onItemTapped(int index) {
     selectedIndex.value = index;
     pageController.animateToPage(
       index,
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 375),
       curve: Curves.easeInOut,
     );
   }
@@ -78,16 +81,14 @@ class TabPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Center(child: Text('Bili Music',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 42.sp, fontFamily: 'Consolas'),
-        )),
+        centerTitle: true,
+        title: Text('Bili Music', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 42.sp, fontFamily: 'Consolas')),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: PageView(
         controller: controller.pageController,
-        onPageChanged: controller.onPageChanged,
-        children: controller.pages,
-        physics: const NeverScrollableScrollPhysics()
+        physics: const NeverScrollableScrollPhysics(),
+        children: controller.pages
       ),
       bottomNavigationBar: Obx(() => SnakeNavigationBar.color(
         currentIndex: controller.selectedIndex.value,
@@ -103,6 +104,7 @@ class TabPage extends StatelessWidget {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.playlist_play), label: 'PlayList'),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Config'),
         ],
       ))
     );

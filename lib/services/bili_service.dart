@@ -6,24 +6,63 @@ import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:html/parser.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:get/get.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart' as inappwebview;
 
 
 class BiliService {
   late Dio dio;
+  late PersistCookieJar cookieJar;
   late String imgKey;
   late String subKey;
+  Rx<bool> isLogin = false.obs;
+  Rx<String> uName = ''.obs;
 
   BiliService() {
     dio = Dio(
       BaseOptions(
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.91 Mobile Safari/537.36',
           'Referer': 'https://www.bilibili.com/'
         },
       ),
     );
 
     getWbiKeys();
+  }
+
+  Future<void> setCookies(List<inappwebview.Cookie> cookies) async {
+    List<Cookie> ioCookies = cookies.map((cookie) {
+      final ioCookie = Cookie(cookie.name, cookie.value);
+      ioCookie.domain = cookie.domain;
+      ioCookie.path = cookie.path ?? "/";
+      if (cookie.expiresDate != null) {
+        ioCookie.expires = DateTime.fromMillisecondsSinceEpoch(cookie.expiresDate!);
+      }
+      ioCookie.secure = cookie.isSecure ?? false;
+      ioCookie.httpOnly = cookie.isHttpOnly ?? false;
+      return ioCookie;
+    }).toList();
+
+    for (var domain in ['https://www.bilibili.com/', 'https://api.bilibili.com/']) {
+      await cookieJar.saveFromResponse(Uri.parse(domain), ioCookies);
+    }
+  }
+
+  Future<void> clearCookies() async {
+    await cookieJar.deleteAll();
+  }
+
+  Future<void> logout() async {
+    for (var domain in ['https://www.bilibili.com/', 'https://api.bilibili.com/']){
+      Uri uri = Uri.parse(domain);
+      List<Cookie> cookies = await cookieJar.loadForRequest(uri);
+      List<Cookie> filteredCookies = cookies.where((cookie) => cookie.name != 'SESSDATA').toList();
+      await cookieJar.delete(uri);
+      if (filteredCookies.isNotEmpty) {
+        await cookieJar.saveFromResponse(uri, filteredCookies);
+      }
+    }
   }
 
   final List<int> mixinKeyEncTab = [
@@ -62,14 +101,13 @@ class BiliService {
   Future getWbiKeys() async {
     final Directory appDocDir = await getApplicationDocumentsDirectory();
     final String appDocPath = appDocDir.path;
-    final cookieJar = PersistCookieJar(
+    cookieJar = PersistCookieJar(
       storage: FileStorage("$appDocPath/.cookies/"),
       ignoreExpires: true,
     );
     dio.interceptors.add(CookieManager(cookieJar));
 
     try {
-      await dio.get('https://bilibili.com/');
       await dio.get('https://www.bilibili.com/');
 
       final response = await dio.get('https://api.bilibili.com/x/web-interface/nav');
@@ -79,6 +117,15 @@ class BiliService {
 
       imgKey = imgUrl.split('/').last.split('.').first;
       subKey = subUrl.split('/').last.split('.').first;
+
+      if (jsonContent['message'] as String == '0'){
+        isLogin.value = true;
+        uName.value = jsonContent['data']['uname'] as String;
+      }else{
+        isLogin.value = false;
+        uName.value = '';
+      }
+
     } on DioException catch (e) {
       throw Exception('Failed to load WBI keys: ${e.message}');
     }

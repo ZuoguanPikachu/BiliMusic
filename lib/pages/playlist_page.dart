@@ -162,7 +162,7 @@ class SongListItem extends StatelessWidget {
         trailing: IconButton(
           icon: const Icon(Icons.more_vert_rounded),
           onPressed: () {
-            _showEditDialog(context, index, songItem, controller);
+            _showEditDialog(index, songItem, controller);
           },
         ),
       ),
@@ -266,60 +266,53 @@ class NowPlayingBar extends StatelessWidget {
   }
 }
 
-void _showEditDialog(BuildContext context, int index, Song songItem, PlayListPageController controller) {
+void _showEditDialog(int index, Song songItem, PlayListPageController controller) {
   final titleController = TextEditingController(text: songItem.title);
   final authorController = TextEditingController(text: songItem.author);
 
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: const Text('Edit Song', style: TextStyle(fontFamily: 'Consolas')),
-        content: SizedBox(
-          width: 500.w,
-          height: 200.h,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              TextFormField(
-                controller: titleController,
-                decoration: const InputDecoration(labelText: 'Title'),
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Author'),
-                controller: authorController,
-              ),
-            ],
-          ),
+  Get.dialog(
+    AlertDialog(
+      title: const Text('Edit Song', style: TextStyle(fontFamily: 'Consolas')),
+      content: SizedBox(
+        width: 500.w,
+        height: 200.h,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            TextFormField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
+            TextFormField(
+              decoration: const InputDecoration(labelText: 'Author'),
+              controller: authorController,
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            child: const Text('DELETE', style: TextStyle(color: Colors.red)),
-            onPressed: () async {
-              await controller.removeSong(index);
-              if (context.mounted){
-                Navigator.of(context).pop();
-              }
-            },
-          ),
-          TextButton(
-            child: const Text('CANCEL'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-          TextButton(
-            child: const Text('SAVE'),
-            onPressed: () async {
-              await controller.updateSong(Song(songItem.bvid, songItem.cid, titleController.text, authorController.text));
-              if (context.mounted){
-                Navigator.of(context).pop();
-              }
-            },
-          ),
-        ],
-      );
-    }
+      ),
+      actions: [
+        TextButton(
+          child: const Text('DELETE', style: TextStyle(color: Colors.red)),
+          onPressed: () async {
+            await controller.removeSong(index);
+            Get.back();
+          },
+        ),
+        TextButton(
+          child: const Text('CANCEL'),
+          onPressed: () {
+            Get.back();
+          },
+        ),
+        TextButton(
+          child: const Text('SAVE'),
+          onPressed: () async {
+            await controller.updateSong(Song(songItem.bvid, songItem.cid, titleController.text, authorController.text));
+            Get.back();
+          },
+        ),
+      ],
+    )
   );
 }
 

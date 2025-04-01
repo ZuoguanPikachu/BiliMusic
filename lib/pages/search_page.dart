@@ -152,7 +152,7 @@ class SearchResultItem extends StatelessWidget {
                         IconButton(
                           icon: const Icon(Icons.add),
                           iconSize: 32.r,
-                          onPressed: () => _showAddSongDialog(context, item, controller),
+                          onPressed: () => _showAddSongDialog(item, controller),
                         )
                       ],
                     )
@@ -167,47 +167,42 @@ class SearchResultItem extends StatelessWidget {
   }
 }
 
-void _showAddSongDialog(BuildContext context, Map<String, dynamic> itemInfo, SearchPageController controller) {
+void _showAddSongDialog(Map<String, dynamic> itemInfo, SearchPageController controller) {
   final titleController = TextEditingController(text: itemInfo['title']);
   final authorController = TextEditingController();
 
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Add Song', style: TextStyle(fontFamily: 'Consolas')),
-        content: SizedBox(
-          width: 500.w,
-          height: 200.h,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(labelText: 'Title'),
-              ),
-              TextField(
-                controller: authorController,
-                decoration: const InputDecoration(labelText: 'Author'),
-              ),
-            ],
-          ),
+  Get.dialog(
+    AlertDialog(
+      title: const Text('Add Song', style: TextStyle(fontFamily: 'Consolas')),
+      content: SizedBox(
+        width: 500.w,
+        height: 200.h,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
+            TextField(
+              controller: authorController,
+              decoration: const InputDecoration(labelText: 'Author'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('CANCEL')),
-          TextButton(
-            onPressed: () async {
-              final cid = await controller.getCid(itemInfo['bvid']!);
-              final song = Song(itemInfo['bvid']!, cid, titleController.text, authorController.text);
-              await controller.addToPlaylist(song);
-              if (context.mounted) {
-                Navigator.of(context).pop();
-              }
-            },
-            child: const Text('ADD'),
-          )
-        ],
-      );
-    },
+      ),
+      actions: [
+        TextButton(onPressed: () => Get.back(), child: const Text('CANCEL')),
+        TextButton(
+          onPressed: () async {
+            final cid = await controller.getCid(itemInfo['bvid']!);
+            final song = Song(itemInfo['bvid']!, cid, titleController.text, authorController.text);
+            await controller.addToPlaylist(song);
+            Get.back();
+          },
+          child: const Text('ADD'),
+        )
+      ],
+    )
   );
 }
