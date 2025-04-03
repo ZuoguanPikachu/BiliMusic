@@ -39,10 +39,12 @@ class ConfigPage extends StatelessWidget {
               padding: const EdgeInsets.only(top: 8, bottom: 8).h,
               child: const ListTile(
                 leading: Icon(Icons.key_rounded),
-                title: Text('LLM API Key'),
+                title: Text('LLM API'),
               ),
             ),
-            onTap: () {},
+            onTap: () {
+              Get.toNamed('/llm');
+            },
           ),
         ],
       ),
@@ -55,17 +57,17 @@ void showLogoutDialog() {
 
   Get.dialog(
     AlertDialog(
-      title: const Text('Log Out'),
-      content: const Text('Are You Sure You Want to Log Out?'),
+      title: const Text('Log Out', style: TextStyle(fontFamily: 'Consolas')),
+      content: const Text('Are You Sure You Want to Log Out?', style: TextStyle(fontFamily: 'Consolas')),
       actions: [
         TextButton(
-          child: const Text('CANCEL'),
+          child: const Text('CANCEL', style: TextStyle(fontFamily: 'Consolas')),
           onPressed: () {
             Get.back();
           },
         ),
         TextButton(
-          child: const Text('CONFIRM'),
+          child: const Text('CONFIRM', style: TextStyle(fontFamily: 'Consolas')),
           onPressed: () async {
             CookieManager cookieManager = CookieManager.instance();
             await cookieManager.deleteAllCookies();
@@ -73,6 +75,7 @@ void showLogoutDialog() {
             await biliService.getWbiKeys();
 
             Get.back();
+            Get.snackbar('Tips', 'Logout Success!');
           },
         ),
       ],

@@ -93,7 +93,6 @@ class PlayListPageController extends GetxController {
 
 class PlayListPage extends StatelessWidget {
   PlayListPage({super.key});
-
   final controller = Get.put(PlayListPageController());
 
   @override
@@ -270,6 +269,15 @@ void _showEditDialog(int index, Song songItem, PlayListPageController controller
   final titleController = TextEditingController(text: songItem.title);
   final authorController = TextEditingController(text: songItem.author);
 
+  final showTitleClearButton = true.obs;
+  final showAuthorClearButton = true.obs;
+  titleController.addListener(() {
+    showTitleClearButton.value = titleController.text.isNotEmpty;
+  });
+  authorController.addListener(() {
+    showAuthorClearButton.value = authorController.text.isNotEmpty;
+  });
+
   Get.dialog(
     AlertDialog(
       title: const Text('Edit Song', style: TextStyle(fontFamily: 'Consolas')),
@@ -279,33 +287,51 @@ void _showEditDialog(int index, Song songItem, PlayListPageController controller
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            TextFormField(
+            Obx(() => TextField(
               controller: titleController,
-              decoration: const InputDecoration(labelText: 'Title'),
-            ),
-            TextFormField(
-              decoration: const InputDecoration(labelText: 'Author'),
+              decoration: InputDecoration(
+                labelText: 'Title',
+                labelStyle: const TextStyle(fontFamily: 'Consolas'),
+                suffixIcon: showTitleClearButton.value ?
+                  IconButton(
+                    icon: const Icon(Icons.clear_rounded, color: Colors.grey),
+                    onPressed: () => titleController.clear(),
+                  ):
+                  null,
+              ),
+            )),
+            Obx(() => TextField(
+              decoration: InputDecoration(
+                labelText: 'Author',
+                labelStyle: const TextStyle(fontFamily: 'Consolas'),
+                suffixIcon: showAuthorClearButton.value ?
+                  IconButton(
+                    icon: const Icon(Icons.clear_rounded, color: Colors.grey),
+                    onPressed: () => authorController.clear(),
+                  ):
+                  null,
+              ),
               controller: authorController,
-            ),
+            )),
           ],
         ),
       ),
       actions: [
         TextButton(
-          child: const Text('DELETE', style: TextStyle(color: Colors.red)),
+          child: const Text('DELETE', style: TextStyle(color: Colors.red, fontFamily: 'Consolas')),
           onPressed: () async {
             await controller.removeSong(index);
             Get.back();
           },
         ),
         TextButton(
-          child: const Text('CANCEL'),
+          child: const Text('CANCEL', style: TextStyle(fontFamily: 'Consolas')),
           onPressed: () {
             Get.back();
           },
         ),
         TextButton(
-          child: const Text('SAVE'),
+          child: const Text('SAVE', style: TextStyle(fontFamily: 'Consolas')),
           onPressed: () async {
             await controller.updateSong(Song(songItem.bvid, songItem.cid, titleController.text, authorController.text));
             Get.back();

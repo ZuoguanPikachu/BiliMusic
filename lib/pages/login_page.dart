@@ -40,6 +40,7 @@ class LoginPage extends StatelessWidget{
                 await biliService.getWbiKeys();
 
                 Get.back();
+                Get.snackbar('Tips', 'Login Success!');
               }
             }
           }

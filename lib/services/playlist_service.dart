@@ -7,7 +7,6 @@ class PlayListService {
   bool isInit = false;
 
   Future<Box<Song>> init() async {
-    await Hive.initFlutter();
     Hive.registerAdapter(SongAdapter());
     isInit = true;
     return await Hive.openBox<Song>(playlist);

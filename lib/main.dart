@@ -2,19 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
+import 'package:hive_flutter/adapters.dart';
 import 'package:bili_music/pages/playlist_page.dart';
 import 'package:bili_music/pages/search_page.dart';
 import 'package:bili_music/pages/config_page.dart';
 import 'package:bili_music/pages/login_page.dart';
+import 'package:bili_music/pages/llm_api_page.dart';
 import 'package:bili_music/services/audio_play_service.dart';
 import 'package:bili_music/services/bili_service.dart';
 import 'package:bili_music/services/playlist_service.dart';
+import 'package:bili_music/services/llm_service.dart';
 
-void main() {
+
+Future<void> main() async {
+  await Hive.initFlutter();
   runApp(const MyApp());
   Get.put(BiliService());
   Get.put(AudioPlayService());
   Get.put(PlayListService());
+  Get.put(LLMService());
 }
 
 class MyApp extends StatelessWidget {
@@ -40,6 +46,7 @@ class MyApp extends StatelessWidget {
           getPages: [
             GetPage(name: '/', page: () => TabPage()),
             GetPage(name: '/login', page: () => LoginPage()),
+            GetPage(name: '/llm', page: () => LLMApiPage()),
           ],
         );
       },
