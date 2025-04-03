@@ -15,9 +15,9 @@ class LLMService {
 - 输入："人来人往 翻唱" → 输出：{"title": "人来人往", "author": ""}
 - 输入："人来人往的街道" → 输出：{"title": "", "author": ""}""";
 
-  LLMService(){
-    Hive.openBox('llm_api');
-  }
+  // LLMService(){
+  //   Hive.openBox('llm_api');
+  // }
 
   Future<void> saveData(String key, String value) async {
     await Hive.box('llm_api').put(key, value);

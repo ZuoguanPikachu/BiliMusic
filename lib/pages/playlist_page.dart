@@ -36,18 +36,10 @@ class PlayListPageController extends GetxController {
     });
   }
 
-  Future<Box<Song>> getBox() async {
-    if (playListService.isInit) {
-      return playListService.getBox();
-    } else {
-      return await playListService.init();
-    }
-  }
-
   Future<void> play(int index) async {
     currentIndex.value = index;
 
-    final box = await getBox();
+    final box = playListService.getBox();
     final song = box.getAt(index)!;
     currentTitle.value = song.title;
     currentAuthor.value = song.author;
@@ -57,13 +49,13 @@ class PlayListPageController extends GetxController {
   }
 
   Future<void> playPrevious() async {
-    final length = (await getBox()).length;
+    final length = playListService.getBox().length;
     final index = (currentIndex.value + length - 1) % length;
     await play(index);
   }
 
   Future<void> playNext() async {
-    final index = (currentIndex.value + 1) % (await getBox()).length;
+    final index = (currentIndex.value + 1) % playListService.getBox().length;
     await play(index);
   }
 
@@ -116,29 +108,16 @@ class SongList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Box<Song>>(
-      future: controller.getBox(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (snapshot.hasData) {
-          return ValueListenableBuilder(
-            valueListenable: snapshot.data!.listenable(),
-            builder: (context, Box box, _) {
-              return ListView.builder(
-                itemCount: box.length,
-                itemBuilder: (context, index) {
-                  return SongListItem(index: index, songItem: box.getAt(index), controller: controller);
-                }
-              );
-            }
+    return ValueListenableBuilder(
+        valueListenable: controller.playListService.getBox().listenable(),
+        builder: (context, Box box, _) {
+          return ListView.builder(
+              itemCount: box.length,
+              itemBuilder: (context, index) {
+                return SongListItem(index: index, songItem: box.getAt(index), controller: controller);
+              }
           );
-        } else {
-          return const Center(child: Text('Unknown error'));
         }
-      },
     );
   }
 }

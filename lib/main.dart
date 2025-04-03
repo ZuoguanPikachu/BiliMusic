@@ -12,10 +12,15 @@ import 'package:bili_music/services/audio_play_service.dart';
 import 'package:bili_music/services/bili_service.dart';
 import 'package:bili_music/services/playlist_service.dart';
 import 'package:bili_music/services/llm_service.dart';
+import 'package:bili_music/models/song_model.dart';
 
 
 Future<void> main() async {
   await Hive.initFlutter();
+  Hive.registerAdapter(SongAdapter());
+  await Hive.openBox<Song>('playlist');
+  await Hive.openBox('llm_api');
+
   runApp(const MyApp());
   Get.put(BiliService());
   Get.put(AudioPlayService());
