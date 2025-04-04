@@ -15,22 +15,19 @@ class LLMService {
 - 输入："人来人往 翻唱" → 输出：{"title": "人来人往", "author": ""}
 - 输入："人来人往的街道" → 输出：{"title": "", "author": ""}""";
 
-  // LLMService(){
-  //   Hive.openBox('llm_api');
-  // }
-
+  
   Future<void> saveData(String key, String value) async {
     await Hive.box('llm_api').put(key, value);
   }
 
-  Future<String> getData(String key) async {
-    return await Hive.box('llm_api').get(key, defaultValue: '');
+  String getData(String key) {
+    return Hive.box('llm_api').get(key, defaultValue: '');
   }
 
   Future<Map<String, dynamic>> extractInfo(String rawTitle) async {
-    String baseUrl = await getData('baseUrl');
-    final modelName = await getData('modelName');
-    final apiKey = await getData('apiKey');
+    String baseUrl = getData('baseUrl');
+    final modelName = getData('modelName');
+    final apiKey = getData('apiKey');
 
     if (baseUrl.isEmpty || modelName.isEmpty || apiKey.isEmpty){
       return {"title": "", "author": ""};

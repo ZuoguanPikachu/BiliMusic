@@ -7,7 +7,7 @@ import 'package:get/get.dart';
 class LLMapiPageController extends GetxController {
   final LLMService apiStorageService = Get.find<LLMService>();
 
-  Future<String> getData(String key) async {
+  String getData(String key) {
     return apiStorageService.getData(key);
   }
 
@@ -41,6 +41,10 @@ class LLMApiPage extends StatelessWidget {
       showApiKeyClearButton.value = apiKeyController.text.isNotEmpty;
     });
 
+    baseUrlController.text = controller.getData('baseUrl');
+    modelNameController.text = controller.getData('modelName');
+    apiKeyController.text = controller.getData('apiKey');
+
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -51,68 +55,44 @@ class LLMApiPage extends StatelessWidget {
         padding: const EdgeInsets.only(left: 48, right: 48, top: 32).w,
         child: Column(
           children: [
-            FutureBuilder(
-              future: controller.getData('baseUrl'),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  baseUrlController.text = snapshot.data.toString();
-                }
-                return Obx(() => TextField(
-                  decoration: InputDecoration(
-                    labelText: 'Base Url',
-                    labelStyle: const TextStyle(fontFamily: 'Consolas'),
-                    suffixIcon: showBaseUrlClearButton.value ?
-                    IconButton(
-                        icon: const Icon(Icons.clear_outlined, color: Colors.grey),
-                        onPressed: () => baseUrlController.clear(),
-                    ) : null,
-                  ),
-                  controller: baseUrlController,
-                ));
-              },
-            ),
+            Obx(() => TextField(
+              decoration: InputDecoration(
+                labelText: 'Base Url',
+                labelStyle: const TextStyle(fontFamily: 'Consolas'),
+                suffixIcon: showBaseUrlClearButton.value ?
+                IconButton(
+                  icon: const Icon(Icons.clear_outlined, color: Colors.grey),
+                  onPressed: () => baseUrlController.clear(),
+                ) : null,
+              ),
+              controller: baseUrlController,
+            )),
             SizedBox(height: 32.h),
-            FutureBuilder(
-              future: controller.getData('modelName'),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  modelNameController.text = snapshot.data.toString();
-                }
-                return Obx(() => TextField(
-                  decoration: InputDecoration(
-                    labelText: 'Model Name',
-                    labelStyle: TextStyle(fontFamily: 'Consolas'),
-                    suffixIcon: showModelNameClearButton.value ?
-                    IconButton(
-                        icon: const Icon(Icons.clear_outlined, color: Colors.grey),
-                        onPressed: () => modelNameController.clear(),
-                    ) : null,
-                  ),
-                  controller: modelNameController,
-                ));
-              },
-            ),
+            Obx(() => TextField(
+              decoration: InputDecoration(
+                labelText: 'Model Name',
+                labelStyle: const TextStyle(fontFamily: 'Consolas'),
+                suffixIcon: showModelNameClearButton.value ?
+                IconButton(
+                  icon: const Icon(Icons.clear_outlined, color: Colors.grey),
+                  onPressed: () => modelNameController.clear(),
+                ) : null,
+              ),
+              controller: modelNameController,
+            )),
             SizedBox(height: 32.h),
-            FutureBuilder(
-              future: controller.getData('apiKey'),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  apiKeyController.text = snapshot.data.toString();
-                }
-                return Obx(() => TextField(
-                  decoration: InputDecoration(
-                    labelText: 'API Key',
-                    labelStyle: TextStyle(fontFamily: 'Consolas'),
-                    suffixIcon: showApiKeyClearButton.value ?
-                    IconButton(
-                        icon: const Icon(Icons.clear_outlined, color: Colors.grey),
-                        onPressed: () => apiKeyController.clear(),
-                    ) : null,
-                  ),
-                  controller: apiKeyController,
-                ));
-              },
-            ),
+            Obx(() => TextField(
+              decoration: InputDecoration(
+                labelText: 'API Key',
+                labelStyle: const TextStyle(fontFamily: 'Consolas'),
+                suffixIcon: showApiKeyClearButton.value ?
+                IconButton(
+                  icon: const Icon(Icons.clear_outlined, color: Colors.grey),
+                  onPressed: () => apiKeyController.clear(),
+                ) : null,
+              ),
+              controller: apiKeyController,
+            )),
             SizedBox(height: 64.h),
             Row(
               children: [
