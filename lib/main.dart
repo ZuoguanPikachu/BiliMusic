@@ -8,6 +8,7 @@ import 'package:bili_music/pages/search_page.dart';
 import 'package:bili_music/pages/config_page.dart';
 import 'package:bili_music/pages/login_page.dart';
 import 'package:bili_music/pages/llm_api_page.dart';
+import 'package:bili_music/pages/lyrics_page.dart';
 import 'package:bili_music/services/audio_play_service.dart';
 import 'package:bili_music/services/bili_service.dart';
 import 'package:bili_music/services/playlist_service.dart';
@@ -52,6 +53,7 @@ class MyApp extends StatelessWidget {
             GetPage(name: '/', page: () => TabPage()),
             GetPage(name: '/login', page: () => LoginPage()),
             GetPage(name: '/llm', page: () => LLMApiPage()),
+            GetPage(name: '/lyrics', page: () => LyricsPage()),
           ],
         );
       },

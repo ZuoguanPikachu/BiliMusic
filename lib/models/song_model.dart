@@ -5,7 +5,7 @@ part 'song_model.g.dart';
 @HiveType(typeId: 0)
 class Song extends HiveObject {
   @HiveField(0)
-  String bvid;
+  String id;
 
   @HiveField(1)
   num cid;
@@ -16,5 +16,5 @@ class Song extends HiveObject {
   @HiveField(3)
   String author;
 
-  Song(this.bvid, this.cid, this.title, this.author);
+  Song(this.id, this.cid, this.title, this.author);
 }

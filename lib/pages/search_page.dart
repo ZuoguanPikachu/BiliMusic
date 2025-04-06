@@ -7,6 +7,9 @@ import 'package:bili_music/services/audio_play_service.dart';
 import 'package:bili_music/models/song_model.dart';
 import 'package:bili_music/services/playlist_service.dart';
 import 'package:bili_music/services/llm_service.dart';
+import 'package:bili_music/models/search_result_item.dart';
+import 'package:bili_music/models/detail_info.dart';
+
 
 
 class SearchPageController extends GetxController {
@@ -17,7 +20,7 @@ class SearchPageController extends GetxController {
 
   final playerId = 'searchPage';
 
-  RxList<Map<String, String>> searchResults = <Map<String, String>>[].obs;
+  RxList<SearchResultItem> searchResults = <SearchResultItem>[].obs;
   RxBool isLoading = false.obs;
 
   Future<void> search(String keyword) async{
@@ -41,14 +44,12 @@ class SearchPageController extends GetxController {
     await playListService.addSong(song);
   }
 
-  Future<Map<String, dynamic>> getDetailInfo(Map<String, String> info) async {
-    final cid = await biliService.getCid(info['bvid']!);
-    final Map<String, dynamic> detailInfo = await llmService.extractInfo(info['title']!);
+  Future<DetailInfo> getDetailInfo(SearchResultItem info) async {
+    final cid = await biliService.getCid(info.id);
+    final detailInfo = await llmService.extractInfo(info.title);
 
-    if (detailInfo['title'].isEmpty){
-      detailInfo['title'] = info['title'];
-    }
-    detailInfo['cid'] = cid;
+    detailInfo.title ??= info.title;
+    detailInfo.cid = cid;
 
     return detailInfo;
   }
@@ -68,7 +69,7 @@ class SearchPage extends StatelessWidget {
             const Center(child: CircularProgressIndicator()) :
             ListView.builder(
               itemCount: controller.searchResults.length,
-              itemBuilder: (context, index) => SearchResultItem(item: controller.searchResults[index], controller: controller),
+              itemBuilder: (context, index) => SearchResultItemWidget(item: controller.searchResults[index], controller: controller),
             ),
           ),
         ),
@@ -112,16 +113,16 @@ class SearchBar extends StatelessWidget {
   }
 }
 
-class SearchResultItem extends StatelessWidget {
-  final Map<String, String> item;
+class SearchResultItemWidget extends StatelessWidget {
+  final SearchResultItem item;
   final SearchPageController controller;
 
-  const SearchResultItem({super.key, required this.item, required this.controller});
+  const SearchResultItemWidget({super.key, required this.item, required this.controller});
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () async => await controller.play(item['bvid']!),
+      onTap: () async => await controller.play(item.id),
       child: Row(
         children: [
           Container(
@@ -131,7 +132,7 @@ class SearchResultItem extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(18).r,
                   child: CachedNetworkImage(
-                    imageUrl: item['pic']!,
+                    imageUrl: item.imageUrl,
                     fit: BoxFit.cover,
                     errorWidget: (context, url, error) => const Icon(Icons.error),
                     width: 270.w,
@@ -147,7 +148,7 @@ class SearchResultItem extends StatelessWidget {
                       color: Colors.black45.withOpacity(0.5),
                       borderRadius: BorderRadius.circular(8).r,
                     ),
-                    child: Text(item['duration']!, style: TextStyle(color: Colors.white, fontSize: 20.sp)),
+                    child: Text(item.duration, style: TextStyle(color: Colors.white, fontSize: 20.sp)),
                   ),
                 ),
               ],
@@ -162,7 +163,7 @@ class SearchResultItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(item['title']!,
+                    Text(item.title,
                       style: TextStyle(fontSize: 24.sp),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -170,7 +171,7 @@ class SearchResultItem extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(item['author']!, style: TextStyle(fontSize: 20.sp, color: Colors.grey)),
+                        Text(item.author, style: TextStyle(fontSize: 20.sp, color: Colors.grey)),
                         IconButton(
                           icon: const Icon(Icons.add),
                           iconSize: 32.r,
@@ -189,7 +190,7 @@ class SearchResultItem extends StatelessWidget {
   }
 }
 
-Future<void> _showAddSongDialog(Map<String, String> itemInfo, SearchPageController controller) async {
+Future<void> _showAddSongDialog(SearchResultItem item, SearchPageController controller) async {
   final titleController = TextEditingController();
   final authorController = TextEditingController();
 
@@ -204,15 +205,17 @@ Future<void> _showAddSongDialog(Map<String, String> itemInfo, SearchPageControll
 
   Get.dialog(
     FutureBuilder(
-      future: controller.getDetailInfo(itemInfo),
+      future: controller.getDetailInfo(item),
       builder: (context, snapshot) {
         List<Widget> contentChildren;
         List<Widget>? actions;
 
         if (snapshot.hasData) {
-          final Map<String, dynamic> detailInfo = snapshot.data!;
-          titleController.text = detailInfo['title'];
-          authorController.text = detailInfo['author'];
+          final DetailInfo detailInfo = snapshot.data!;
+          titleController.text = detailInfo.title!;
+          if (detailInfo.author != null) {
+            authorController.text = detailInfo.author!;
+          }
 
           contentChildren = [
             Obx(() => TextField(
@@ -246,7 +249,7 @@ Future<void> _showAddSongDialog(Map<String, String> itemInfo, SearchPageControll
             TextButton(onPressed: () => Get.back(), child: const Text('CANCEL', style: TextStyle(fontFamily: 'Consolas'))),
             TextButton(
               onPressed: () async {
-                final song = Song(itemInfo['bvid']!, detailInfo['cid'] as num, titleController.text, authorController.text);
+                final song = Song(item.id, detailInfo.cid, titleController.text, authorController.text);
                 await controller.addToPlaylist(song);
                 Get.back();
                 Get.snackbar('Tips', 'Song Added Successfully!');

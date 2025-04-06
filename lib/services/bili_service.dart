@@ -8,6 +8,9 @@ import 'package:html/parser.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:get/get.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart' as inappwebview;
+import 'package:bili_music/models/search_result_item.dart';
+import 'package:bili_music/models/lyrics_item.dart';
+
 
 
 class BiliService {
@@ -131,7 +134,7 @@ class BiliService {
     }
   }
 
-  Future<List<Map<String, String>>> search(String keyword) async {
+  Future<List<SearchResultItem>> search(String keyword) async {
     try {
       final response = await dio.get('https://api.bilibili.com/x/web-interface/wbi/search/type',
         queryParameters: encWbi({
@@ -141,18 +144,19 @@ class BiliService {
       );
       final jsonContent = response.data;
 
-      List<Map<String, String>> result = [];
+      List<SearchResultItem> result = [];
       jsonContent['data']['result'].forEach((item) {
         if (item['type'] != 'video') {
           return;
         }
-        result.add({
-          "bvid": item['bvid'],
-          "title": extractContent(item['title']),
-          "author": item['author'],
-          "pic": 'https:${item['pic']}',
-          "duration": formatTime(item['duration']),
-        });
+
+        result.add(SearchResultItem(
+          item['bvid'],
+          extractContent(item['title']),
+          item['author'],
+          'https:${item['pic']}',
+          formatTime(item['duration']),
+        ));
       });
       return result;
     } on DioException catch (e) {
@@ -160,11 +164,11 @@ class BiliService {
     }
   }
 
-  Future<String> getAudioUrl(String bvid, {num? cid}) async {
+  Future<String> getAudioUrl(String id, {num? cid}) async {
     try {
-      cid ??= await getCid(bvid);
+      cid ??= await getCid(id);
       final response = await dio.get('https://api.bilibili.com/x/player/wbi/playurl',
-          queryParameters: {'bvid': bvid, 'cid': cid, 'fnval': 16},
+          queryParameters: {'bvid': id, 'cid': cid, 'fnval': 16},
       );
       final jsonContent = response.data;
 
@@ -185,6 +189,41 @@ class BiliService {
       return jsonContent['data']['cid'];
     } on DioException catch (e) {
       throw Exception('Failed to get cid: ${e.message}');
+    }
+  }
+
+  Future<List<LyricsItem>> getLyricsFromSubtitle(String id, {num? cid}) async {
+    try {
+      cid ??= await getCid(id);
+      final response = await dio.get('https://api.bilibili.com/x/player/wbi/v2',
+          queryParameters: {'bvid': id, 'cid': cid},
+      );
+      final jsonContent = response.data;
+      final subtitles = jsonContent['data']['subtitle']['subtitles'] as List<dynamic>;
+      if (subtitles.isEmpty) {
+        return [];
+      }
+
+      List<List<dynamic>> rawLyricsList = [];
+      for (var subtitle in subtitles) {
+        final lyricsUrl = subtitle['subtitle_url'] as String;
+        final response = await dio.get("https:$lyricsUrl");
+        rawLyricsList.add(response.data['body'] as List<dynamic>);
+      }
+
+      List<LyricsItem> lyricsList = [];
+      for(int i = 0; i < rawLyricsList[0].length; i++) {
+        LyricsItem lyricsItem = LyricsItem(Duration(milliseconds: ((rawLyricsList[0][i]['from'] as num) * 1000).toInt()), '');
+
+        for (var rawLyrics in rawLyricsList){
+          lyricsItem.text += rawLyrics[i]['content'] + '\n';
+        }
+        lyricsItem.text = lyricsItem.text.trim();
+        lyricsList.add(lyricsItem);
+      }
+      return lyricsList;
+    } on DioException catch (e) {
+      throw Exception('Failed to get lyrics: ${e.message}');
     }
   }
 

@@ -29,7 +29,7 @@ class SongAdapter extends TypeAdapter<Song> {
     writer
       ..writeByte(4)
       ..writeByte(0)
-      ..write(obj.bvid)
+      ..write(obj.id)
       ..writeByte(1)
       ..write(obj.cid)
       ..writeByte(2)

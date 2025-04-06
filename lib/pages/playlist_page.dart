@@ -3,24 +3,27 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:bili_music/services/bili_service.dart';
 import 'package:bili_music/services/audio_play_service.dart';
-import 'package:bili_music/models/song_model.dart';
 import 'package:bili_music/services/playlist_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:bili_music/pages/lyrics_page.dart';
+import 'package:bili_music/models/song_model.dart';
 
 
 class PlayListPageController extends GetxController {
   final biliService = Get.find<BiliService>();
   final audioPlayService = Get.find<AudioPlayService>();
   final playListService = Get.find<PlayListService>();
+  final lyricsPageController = Get.put(LyricsPageController());
+
   final playerId = 'playlistPage';
 
   Rx<Duration> duration = Duration.zero.obs;
   Rx<Duration> position = Duration.zero.obs;
-  Rx<bool> isPlaying = false.obs;
-  Rx<int> currentIndex = (-1).obs;
-  Rx<String> currentTitle = ''.obs;
-  Rx<String> currentAuthor = ''.obs;
+  RxBool isPlaying = false.obs;
+  RxInt currentIndex = (-1).obs;
+  RxString currentTitle = ''.obs;
+  RxString currentAuthor = ''.obs;
 
   @override
   void onInit() {
@@ -37,6 +40,7 @@ class PlayListPageController extends GetxController {
   }
 
   Future<void> play(int index) async {
+    await audioPlayService.stop(playerId);
     currentIndex.value = index;
 
     final box = playListService.getBox();
@@ -44,7 +48,9 @@ class PlayListPageController extends GetxController {
     currentTitle.value = song.title;
     currentAuthor.value = song.author;
 
-    final audioUrl = await biliService.getAudioUrl(song.bvid, cid: song.cid);
+    final audioUrl = await biliService.getAudioUrl(song.id, cid: song.cid);
+    final lyrics = await biliService.getLyricsFromSubtitle(song.id, cid: song.cid);
+    lyricsPageController.setLyrics(lyrics);
     await audioPlayService.play(playerId, url: audioUrl);
   }
 
@@ -164,81 +170,84 @@ class NowPlayingBar extends StatelessWidget {
           color: Theme.of(context).colorScheme.primaryFixedDim,
           borderRadius: BorderRadius.circular(16).r
       ),
-      child: Row(
-        children: [
-          Icon(Icons.library_music_rounded, size: 64.sp, color: Colors.black45,),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.only(left: 16, right: 16).r,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+      child: InkWell(
+        onTap: () {Get.toNamed('/lyrics');},
+        child: Row(
+          children: [
+            Icon(Icons.library_music_rounded, size: 64.sp, color: Colors.black45,),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.only(left: 16, right: 16).r,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Obx(() => Text(controller.currentTitle.value, style: TextStyle(fontSize: 24.sp))),
+                            SizedBox(height: 6.sp),
+                            Obx(() => Text(controller.currentAuthor.value, style: TextStyle(fontSize: 20.sp, color: Colors.black45))),
+                          ],
+                        )
+                      ),
+                      Row(
                         children: [
-                          Obx(() => Text(controller.currentTitle.value, style: TextStyle(fontSize: 24.sp))),
-                          SizedBox(height: 6.sp),
-                          Obx(() => Text(controller.currentAuthor.value, style: TextStyle(fontSize: 20.sp, color: Colors.black45))),
-                        ],
+                          IconButton(
+                            icon: const Icon(Icons.skip_previous_outlined),
+                            iconSize: 48.sp,
+                            onPressed: () async {
+                              await controller.playPrevious();
+                            }
+                          ),
+                          Obx(() => IconButton(
+                            icon: Icon(controller.isPlaying.value? Icons.pause_circle_outline_outlined : Icons.play_circle_outline_outlined),
+                            iconSize: 64.sp,
+                            onPressed: () async {
+                              if (controller.isPlaying.value){
+                                await controller.pause();
+                              }
+                              else if (controller.currentIndex.value == -1){
+                                await controller.play(0);
+                              }
+                              else{
+                                await controller.resume();
+                              }
+                            }
+                          )),
+                          IconButton(
+                            icon: const Icon(Icons.skip_next_outlined),
+                            iconSize: 48.sp,
+                            onPressed: () async {
+                              await controller.playNext();
+                            }
+                          ),
+                        ]
                       )
-                    ),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.skip_previous_outlined),
-                          iconSize: 48.sp,
-                          onPressed: () async {
-                            await controller.playPrevious();
-                          }
-                        ),
-                        Obx(() => IconButton(
-                          icon: Icon(controller.isPlaying.value? Icons.pause_circle_outline_outlined : Icons.play_circle_outline_outlined),
-                          iconSize: 64.sp,
-                          onPressed: () async {
-                            if (controller.isPlaying.value){
-                              await controller.pause();
-                            }
-                            else if (controller.currentIndex.value == -1){
-                              await controller.play(0);
-                            }
-                            else{
-                              await controller.resume();
-                            }
-                          }
-                        )),
-                        IconButton(
-                          icon: const Icon(Icons.skip_next_outlined),
-                          iconSize: 48.sp,
-                          onPressed: () async {
-                            await controller.playNext();
-                          }
-                        ),
-                      ]
-                    )
-                  ],
-                ),
-                SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                      thumbShape: RoundSliderThumbShape(enabledThumbRadius: 8.r),
-                      overlayShape: RoundSliderOverlayShape(overlayRadius: 24.r),
-                      trackHeight: 2.r
+                    ],
                   ),
-                  child: Obx(() => Slider(
-                    value: controller.position.value.inSeconds.toDouble(),
-                    min: 0,
-                    max: controller.duration.value.inSeconds.toDouble(),
-                    onChanged: (value) async {
-                      await controller.seek(Duration(seconds: value.toInt()));
-                    },
-                  ))
-                )
-              ],
+                  SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                          thumbShape: RoundSliderThumbShape(enabledThumbRadius: 8.r),
+                          overlayShape: RoundSliderOverlayShape(overlayRadius: 24.r),
+                          trackHeight: 2.r
+                      ),
+                      child: Obx(() => Slider(
+                        value: controller.position.value.inSeconds.toDouble(),
+                        min: 0,
+                        max: controller.duration.value.inSeconds.toDouble(),
+                        onChanged: (value) async {
+                          await controller.seek(Duration(seconds: value.toInt()));
+                        },
+                      ))
+                  )
+                ],
+              )
             )
-          )
-        ],
+          ],
+        )
       )
     );
   }
@@ -312,7 +321,7 @@ void _showEditDialog(int index, Song songItem, PlayListPageController controller
         TextButton(
           child: const Text('SAVE', style: TextStyle(fontFamily: 'Consolas')),
           onPressed: () async {
-            await controller.updateSong(Song(songItem.bvid, songItem.cid, titleController.text, authorController.text));
+            await controller.updateSong(Song(songItem.id, songItem.cid, titleController.text, authorController.text));
             Get.back();
           },
         ),

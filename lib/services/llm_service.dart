@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:hive/hive.dart';
+import 'package:bili_music/models/detail_info.dart';
+
 
 class LLMService {
   final dio = Dio();
@@ -24,13 +26,13 @@ class LLMService {
     return Hive.box('llm_api').get(key, defaultValue: '');
   }
 
-  Future<Map<String, dynamic>> extractInfo(String rawTitle) async {
+  Future<DetailInfo> extractInfo(String rawTitle) async {
     String baseUrl = getData('baseUrl');
     final modelName = getData('modelName');
     final apiKey = getData('apiKey');
 
     if (baseUrl.isEmpty || modelName.isEmpty || apiKey.isEmpty){
-      return {"title": "", "author": ""};
+      return DetailInfo();
     }
 
     if (!(baseUrl.endsWith('chat/completions') || baseUrl.endsWith('chat/completions/'))){
@@ -56,6 +58,9 @@ class LLMService {
       llmOutput.trim().replaceAll('```json', '').replaceAll('```', '').replaceAll(RegExp(r'^\s*', multiLine: true), '')
     );
 
-    return llmOutputJson;
+    return DetailInfo(
+      title: llmOutputJson['title'],
+      author: llmOutputJson['author'],
+    );
   }
 }

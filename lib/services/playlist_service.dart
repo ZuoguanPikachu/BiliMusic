@@ -14,7 +14,7 @@ class PlayListService {
 
   Future<void> addSong(Song song) async {
     final box = getBox();
-    await box.put('${song.bvid}-${song.cid}', song);
+    await box.put('${song.id}-${song.cid}', song);
   }
 
   Future<void> removeSong(int index) async {
