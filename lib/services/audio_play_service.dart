@@ -235,6 +235,7 @@ Future<PlaylistAudioPlayer> initPlaylistAudioPlayer() async {
       androidNotificationChannelName: 'Music Playback',
       androidNotificationOngoing: true,
       androidShowNotificationBadge: true,
+      androidNotificationIcon: 'mipmap/ic_launcher'
     ),
   );
 }
