@@ -43,8 +43,13 @@ class SearchPageController extends GetxController {
   }
 
   Future<DetailInfo> getDetailInfo(SearchResultItem info) async {
-    final cid = await biliService.getCid(info.id);
-    final detailInfo = await llmService.extractInfo(info.title);
+    final results = await Future.wait([
+      llmService.extractInfo(info.title),
+      biliService.getCid(info.id),
+    ]);
+
+    final detailInfo = results[0] as DetailInfo;
+    final cid = results[1] as num;
 
     detailInfo.title ??= info.title;
     detailInfo.cid = cid;
