@@ -6,63 +6,51 @@ import 'package:bili_music/services/audio_play_service.dart';
 import 'package:bili_music/services/playlist_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:bili_music/pages/lyrics_page.dart';
 import 'package:bili_music/models/song_model.dart';
 
 
 class PlayListPageController extends GetxController {
   final biliService = Get.find<BiliService>();
-  final audioPlayService = Get.find<AudioPlayService>();
   final playListService = Get.find<PlayListService>();
-  final lyricsPageController = Get.put(LyricsPageController());
-
+  final audioPlayService = Get.find<AudioPlayService>();
   final playerId = 'playlistPage';
+  bool isInitialized = false;
 
   Rx<Duration> duration = Duration.zero.obs;
   Rx<Duration> position = Duration.zero.obs;
   RxBool isPlaying = false.obs;
   RxInt currentIndex = (-1).obs;
-  RxString currentTitle = ''.obs;
-  RxString currentAuthor = ''.obs;
+  Rxn<Song> currentSong = Rxn<Song>();
 
   @override
-  void onInit() {
+  Future<void> onInit() async {
     super.onInit();
-    audioPlayService.getPlayerPosition(playerId).listen((p) => position.value = p);
-    audioPlayService.getPlayerDuration(playerId).listen((d) => duration.value = d ?? Duration.zero);
-    audioPlayService.getPlayerState(playerId).listen((state) async {
+    await audioPlayService.init();
+    isInitialized = true;
+    ever(audioPlayService.currentSong(playerId), (song) => currentSong.value = song);
+    ever(audioPlayService.currentIndex(playerId), (index) => currentIndex.value = index);
+
+    audioPlayService.position(playerId).listen((p) => position.value = p);
+    audioPlayService.duration(playerId).listen((d) => duration.value = d ?? Duration.zero);
+    audioPlayService.playerState(playerId).listen((state) async {
       isPlaying.value = state.playing;
 
       if (state.processingState == ProcessingState.completed && isPlaying.value){
-        await playNext();
+        await audioPlayService.playNext(playerId);
       }
     });
   }
 
   Future<void> play(int index) async {
-    await audioPlayService.stop(playerId);
-    currentIndex.value = index;
-
-    final box = playListService.getBox();
-    final song = box.getAt(index)!;
-    currentTitle.value = song.title;
-    currentAuthor.value = song.author;
-
-    final audioUrl = await biliService.getAudioUrl(song.id, cid: song.cid);
-    final lyrics = await biliService.getLyricsFromSubtitle(song.id, cid: song.cid);
-    lyricsPageController.setLyrics(lyrics);
-    await audioPlayService.play(playerId, url: audioUrl);
+    await audioPlayService.play(playerId, index: index);
   }
 
   Future<void> playPrevious() async {
-    final length = playListService.getBox().length;
-    final index = (currentIndex.value + length - 1) % length;
-    await play(index);
+    await audioPlayService.playPrevious(playerId);
   }
 
   Future<void> playNext() async {
-    final index = (currentIndex.value + 1) % playListService.getBox().length;
-    await play(index);
+    await audioPlayService.playNext(playerId);
   }
 
   Future<void> pause() async {
@@ -81,11 +69,9 @@ class PlayListPageController extends GetxController {
     await playListService.addSong(song);
   }
 
-  Future<void> removeSong(int index) async {
-    if (index <= currentIndex.value && currentIndex.value != -1){
-      currentIndex.value -= 1;
-    }
-    await playListService.removeSong(index);
+  Future<void> removeSong(Song song) async {
+    await playListService.removeSong(song);
+    audioPlayService.updateIndex(playerId);
   }
 }
 
@@ -146,7 +132,7 @@ class SongListItem extends StatelessWidget {
         trailing: IconButton(
           icon: const Icon(Icons.more_vert_rounded),
           onPressed: () {
-            _showEditDialog(index, songItem, controller);
+            _showEditDialog(songItem, controller);
           },
         ),
       ),
@@ -171,7 +157,9 @@ class NowPlayingBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(16).r
       ),
       child: InkWell(
-        onTap: () {Get.toNamed('/lyrics');},
+        onTap: () {
+          Get.toNamed('/lyrics');
+        },
         child: Row(
           children: [
             Icon(Icons.library_music_rounded, size: 64.sp, color: Colors.black45,),
@@ -187,9 +175,13 @@ class NowPlayingBar extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Obx(() => Text(controller.currentTitle.value, style: TextStyle(fontSize: 24.sp))),
+                            Obx(() => Text(controller.currentSong.value == null ? '' : controller.currentSong.value!.title,
+                                style: TextStyle(fontSize: 24.sp)
+                            )),
                             SizedBox(height: 6.sp),
-                            Obx(() => Text(controller.currentAuthor.value, style: TextStyle(fontSize: 20.sp, color: Colors.black45))),
+                            Obx(() => Text(controller.currentSong.value == null ? '' : controller.currentSong.value!.author,
+                                style: TextStyle(fontSize: 20.sp, color: Colors.black45)
+                            )),
                           ],
                         )
                       ),
@@ -253,7 +245,7 @@ class NowPlayingBar extends StatelessWidget {
   }
 }
 
-void _showEditDialog(int index, Song songItem, PlayListPageController controller) {
+void _showEditDialog(Song songItem, PlayListPageController controller) {
   final titleController = TextEditingController(text: songItem.title);
   final authorController = TextEditingController(text: songItem.author);
 
@@ -308,7 +300,7 @@ void _showEditDialog(int index, Song songItem, PlayListPageController controller
         TextButton(
           child: const Text('DELETE', style: TextStyle(color: Colors.red, fontFamily: 'Consolas')),
           onPressed: () async {
-            await controller.removeSong(index);
+            await controller.removeSong(songItem);
             Get.back();
           },
         ),

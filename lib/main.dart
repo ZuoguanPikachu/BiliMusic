@@ -24,9 +24,9 @@ Future<void> main() async {
 
   runApp(const MyApp());
   Get.put(BiliService());
+  Get.put(LLMService());
   Get.put(AudioPlayService());
   Get.put(PlayListService());
-  Get.put(LLMService());
 }
 
 class MyApp extends StatelessWidget {

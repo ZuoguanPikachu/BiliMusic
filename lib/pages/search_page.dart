@@ -17,7 +17,6 @@ class SearchPageController extends GetxController {
   final audioPlayService = Get.find<AudioPlayService>();
   final playListService = Get.find<PlayListService>();
   final llmService = Get.find<LLMService>();
-
   final playerId = 'searchPage';
 
   RxList<SearchResultItem> searchResults = <SearchResultItem>[].obs;
@@ -35,9 +34,8 @@ class SearchPageController extends GetxController {
     }
   }
 
-  Future<void> play(String id) async {
-    final audioUrl = await biliService.getAudioUrl(id);
-    await audioPlayService.play(playerId, url: audioUrl);
+  Future<void> play(SearchResultItem item) async {
+    await audioPlayService.play(playerId, searchResultItem: item);
   }
 
   Future<void> addToPlaylist(Song song) async {
@@ -52,6 +50,10 @@ class SearchPageController extends GetxController {
     detailInfo.cid = cid;
 
     return detailInfo;
+  }
+
+  void updatePlaylistPlayerIndex() {
+    audioPlayService.updateIndex('playlistPage');
   }
 }
 
@@ -122,7 +124,7 @@ class SearchResultItemWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () async => await controller.play(item.id),
+      onTap: () async => await controller.play(item),
       child: Row(
         children: [
           Container(
@@ -251,6 +253,7 @@ Future<void> _showAddSongDialog(SearchResultItem item, SearchPageController cont
               onPressed: () async {
                 final song = Song(item.id, detailInfo.cid, titleController.text, authorController.text);
                 await controller.addToPlaylist(song);
+                controller.updatePlaylistPlayerIndex();
                 Get.back();
                 Get.snackbar('Tips', 'Song Added Successfully!');
               },

@@ -4,14 +4,19 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:bili_music/services/audio_play_service.dart';
 import 'package:bili_music/services/playlist_service.dart';
+import 'package:bili_music/services/bili_service.dart';
+
+import '../models/song_model.dart';
 
 
 class LyricsPageController extends GetxController {
   final audioPlayService = Get.find<AudioPlayService>();
   final playListService = Get.find<PlayListService>();
+  final biliService = Get.find<BiliService>();
 
   RxList<LyricsItem> lyrics = <LyricsItem>[].obs;
   RxInt currentLyricsIndex = (-1).obs;
+
   bool isUserScrolling = false;
   final ScrollController scrollController = ScrollController();
   final playerId = 'playlistPage';
@@ -19,7 +24,12 @@ class LyricsPageController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    audioPlayService.getPlayerPosition(playerId).listen((position) {
+    if (audioPlayService.currentIndex(playerId).value != -1) {
+      loadLyrics(audioPlayService.currentSong(playerId).value!);
+    }
+    ever(audioPlayService.currentSong(playerId), (song) => loadLyrics(song!));
+
+    audioPlayService.position(playerId).listen((position) {
       if (lyrics.isNotEmpty) {
         final newIndex = lyrics.lastIndexWhere((lyric) => position >= lyric.time);
         if (newIndex != currentLyricsIndex.value && newIndex >= -1) {
@@ -30,6 +40,7 @@ class LyricsPageController extends GetxController {
         }
       }
     });
+
   }
 
   void scrollToCurrentLine() {
@@ -44,7 +55,8 @@ class LyricsPageController extends GetxController {
     }
   }
 
-  void setLyrics(List<LyricsItem> lyrics) {
+  Future<void> loadLyrics(Song song) async {
+    final lyrics = await biliService.getLyricsFromSubtitle(song.id, cid: song.cid);
     this.lyrics.value = lyrics;
     currentLyricsIndex.value = -1;
     scrollToCurrentLine();
@@ -77,7 +89,7 @@ class LyricsPageController extends GetxController {
 }
 
 class LyricsPage extends StatelessWidget {
-  final LyricsPageController lyricsController = Get.find<LyricsPageController>();
+  final LyricsPageController lyricsController = Get.put(LyricsPageController(), permanent: true);
 
   LyricsPage({super.key}) {
     lyricsController.scrollOnPageLoad();
@@ -93,7 +105,6 @@ class LyricsPage extends StatelessWidget {
       ),
       body: Obx(() => lyricsController.lyrics.isEmpty ?
         const Center(child: Text('No lyrics found.')) :
-
         NotificationListener<ScrollNotification>(
           onNotification: (notification) {
             lyricsController.handleScrollNotification(notification);

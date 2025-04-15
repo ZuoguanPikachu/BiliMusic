@@ -1,42 +1,245 @@
+import 'package:bili_music/models/search_result_item.dart';
+import 'package:bili_music/services/playlist_service.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:audio_service/audio_service.dart';
+import 'package:bili_music/models/song_model.dart';
+import 'bili_service.dart';
+import 'package:get/get.dart';
 
 
 class AudioPlayService {
-  final players = {
-    'playlistPage': AudioPlayer(),
-    'searchPage': AudioPlayer(),
-  };
+  late PlaylistAudioPlayer playlistAudioPlayer;
+  late AudioPlayer searchResultAudioPlayer;
 
   final headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
     'Referer': 'https://www.bilibili.com/'
   };
 
-  Future<void> play(String id, {String? url}) async {
+  Future<void> init() async {
+    playlistAudioPlayer = await initPlaylistAudioPlayer();
+    searchResultAudioPlayer = AudioPlayer();
+  }
+
+  Future<void> play(String id, {int? index, SearchResultItem? searchResultItem}) async {
     await stop('searchPage');
     await pause('playlistPage');
 
-    AudioPlayer player = players[id]!;
-
-    if (url != null) {
-      await player.setUrl(url, headers: headers);
+    if (id == 'playlistPage' && index != null){
+      playlistAudioPlayer.playByIndex(index);
+      await playlistAudioPlayer.play();
+    } else if (id == 'playlistPage' && index == null){
+      await playlistAudioPlayer.play();
+    } else if (id =='searchPage' && searchResultItem!= null){
+      final url = await getAudioUrl(searchResultItem.id);
+      await searchResultAudioPlayer.setUrl(url, headers: headers);
+      await searchResultAudioPlayer.play();
     }
-    await player.play();
+  }
+
+  Future<void> playPrevious(String id) async {
+    if (id == 'playlistPage') {
+      await playlistAudioPlayer.skipToPrevious();
+    }
+  }
+
+  Future<void> playNext(String id) async {
+    if (id == 'playlistPage') {
+      await playlistAudioPlayer.skipToNext();
+    }
   }
 
   Future<void> stop(String id) async {
-    await players[id]!.stop();
+    if (id == 'playlistPage') {
+      await playlistAudioPlayer.stop();
+    } else if (id =='searchPage') {
+      await searchResultAudioPlayer.stop();
+    }
   }
 
   Future<void> pause(String id) async {
-    await players[id]!.pause();
+    if (id == 'playlistPage') {
+      await playlistAudioPlayer.pause();
+    } else if (id =='searchPage') {
+      await searchResultAudioPlayer.pause();
+    }
   }
 
   Future<void> seek(String id, Duration position) async {
-    await players[id]!.seek(position);
+    if (id == 'playlistPage') {
+      await playlistAudioPlayer.audioPlayer.seek(position);
+    } else if (id =='searchPage') {
+      await searchResultAudioPlayer.seek(position);
+    }
   }
 
-  Stream<Duration> getPlayerPosition(String id) => players[id]!.positionStream;
-  Stream<Duration?> getPlayerDuration(String id) => players[id]!.durationStream;
-  Stream<PlayerState> getPlayerState(String id) => players[id]!.playerStateStream;
+  Stream<Duration> position(String id) {
+    if (id == 'playlistPage') {
+      return playlistAudioPlayer.audioPlayer.positionStream;
+    } else if (id =='searchPage') {
+      return searchResultAudioPlayer.positionStream;
+    }
+
+    throw Exception('Invalid id');
+  }
+
+  Stream<Duration?> duration(String id) {
+    if (id == 'playlistPage') {
+      return playlistAudioPlayer.audioPlayer.durationStream;
+    } else if (id =='searchPage') {
+      return searchResultAudioPlayer.durationStream;
+    }
+
+    throw Exception('Invalid id');
+  }
+
+  Stream<PlayerState> playerState(String id) {
+    if (id == 'playlistPage') {
+      return playlistAudioPlayer.audioPlayer.playerStateStream;
+    } else if (id =='searchPage') {
+      return searchResultAudioPlayer.playerStateStream;
+    }
+
+    throw Exception('Invalid id');
+  }
+
+  Rxn<Song> currentSong(String id) {
+    if (id == 'playlistPage') {
+      return playlistAudioPlayer.currentSong;
+    }
+    throw Exception('Invalid id');
+  }
+
+  RxInt currentIndex(String id){
+    if (id == 'playlistPage') {
+      return playlistAudioPlayer.currentIndex;
+    }
+    throw Exception('Invalid id');
+  }
+
+  void updateIndex(String id){
+    if (id == 'playlistPage') {
+      playlistAudioPlayer.updateIndex();
+    }
+  }
+
+}
+
+class PlaylistAudioPlayer extends BaseAudioHandler with QueueHandler, SeekHandler {
+  final AudioPlayer audioPlayer = AudioPlayer();
+  final playListService = Get.find<PlayListService>();
+  final Rxn<Song> currentSong = Rxn<Song>();
+  RxInt currentIndex = (-1).obs;
+
+  final headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+    'Referer': 'https://www.bilibili.com/'
+  };
+
+
+  PlaylistAudioPlayer() {
+    audioPlayer.playbackEventStream.map(_transformEvent).pipe(playbackState);
+
+    audioPlayer.positionStream.listen((_) {
+      mediaItem.add(mediaItem.value?.copyWith(duration: audioPlayer.duration));
+    });
+  }
+
+  PlaybackState _transformEvent(PlaybackEvent event) {
+    return PlaybackState(
+      controls: [
+        MediaControl.skipToPrevious,
+        if (audioPlayer.playing) MediaControl.pause else MediaControl.play,
+        MediaControl.skipToNext,
+      ],
+      systemActions: {MediaAction.seek},
+      playing: audioPlayer.playing,
+      processingState: audioPlayer.processingState == ProcessingState.completed
+          ? AudioProcessingState.completed
+          : AudioProcessingState.ready,
+      updatePosition: audioPlayer.position,
+      bufferedPosition: audioPlayer.bufferedPosition,
+      speed: audioPlayer.speed,
+    );
+  }
+
+  void setMediaItem(Song song) {
+    currentSong.value = song;
+    mediaItem.add(MediaItem(
+      id: '${song.id}-${song.cid}',
+      title: song.title,
+      artist: song.author,
+      duration: audioPlayer.duration,
+    ));
+  }
+
+  Future<void> playByIndex(int index) async {
+    currentIndex.value = index;
+    final song = playListService.getBox().getAt(index)!;
+    setMediaItem(song);
+    await audioPlayer.setUrl(await getAudioUrl(song.id, cid: song.cid), headers: headers);
+    await play();
+  }
+
+  void updateIndex(){
+    if (currentIndex.value == -1){
+      return;
+    }
+
+    final index = playListService.getBox().keys.toList().indexOf(
+      '${currentSong.value!.id}-${currentSong.value!.cid}'
+    );
+    if (index == -1){
+      currentIndex.value -= 1;
+    } else {
+      currentIndex.value = index;
+    }
+  }
+
+  @override
+  Future<void> play() async {
+    await audioPlayer.play();
+  }
+
+  @override
+  Future<void> pause() async {
+    await audioPlayer.pause();
+  }
+
+  @override
+  Future<void> stop() async {
+    await audioPlayer.stop();
+  }
+
+  @override
+  Future<void> skipToPrevious() async {
+    final length = playListService.getBox().length;
+    final index = (currentIndex.value + length - 1) % length;
+    currentIndex.value = index;
+    await playByIndex(index);
+  }
+
+  @override
+  Future<void> skipToNext() async {
+    final index = (currentIndex.value + 1) % playListService.getBox().length;
+    currentIndex.value = index;
+    await playByIndex(index);
+  }
+}
+
+Future<PlaylistAudioPlayer> initPlaylistAudioPlayer() async {
+  return await AudioService.init(
+    builder: () => PlaylistAudioPlayer(),
+    config: const AudioServiceConfig(
+      androidNotificationChannelId: 'com.bili_music.audio',
+      androidNotificationChannelName: 'Music Playback',
+      androidNotificationOngoing: true,
+      androidShowNotificationBadge: true,
+    ),
+  );
+}
+
+Future<String> getAudioUrl(String id, {num? cid}) async {
+  final biliService = Get.find<BiliService>();
+  return await biliService.getAudioUrl(id, cid: cid);
 }
