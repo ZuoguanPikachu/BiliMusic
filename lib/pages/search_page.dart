@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:bili_music/services/bili_service.dart';
 import 'package:bili_music/services/audio_play_service.dart';
@@ -99,13 +98,13 @@ class SearchBar extends StatelessWidget {
     });
 
     return Padding(
-      padding: const EdgeInsets.all(16).r,
+      padding: const EdgeInsets.all(16),
       child: Obx(() => TextField(
         controller: textController,
         decoration: InputDecoration(
           hintText: 'Search',
           hintStyle: const TextStyle(fontFamily: 'Consolas'),
-          border: OutlineInputBorder(borderRadius: BorderRadius.all(const Radius.circular(42).r)),
+          border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(26))),
           prefixIcon: const Icon(Icons.search),
           suffixIcon: showClearButton.value ?
             IconButton(
@@ -133,29 +132,29 @@ class SearchResultItemWidget extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8.0).r,
+            padding: const EdgeInsets.all(8.0),
             child: Stack(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(18).r,
+                  borderRadius: BorderRadius.circular(8),
                   child: CachedNetworkImage(
                     imageUrl: item.imageUrl,
                     fit: BoxFit.cover,
                     errorWidget: (context, url, error) => const Icon(Icons.error),
-                    width: 270.w,
-                    height: 150.h,
+                    width: 170,
+                    height: 95,
                   ),
                 ),
                 Positioned(
-                  bottom: 8.h,
-                  right: 16.w,
+                  bottom: 4,
+                  right: 8,
                   child: Container(
-                    padding: const EdgeInsets.all(6).r,
+                    padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
                       color: Colors.black45.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(8).r,
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Text(item.duration, style: TextStyle(color: Colors.white, fontSize: 20.sp)),
+                    child: Text(item.duration, style: const TextStyle(color: Colors.white, fontSize: 14)),
                   ),
                 ),
               ],
@@ -163,25 +162,25 @@ class SearchResultItemWidget extends StatelessWidget {
           ),
           Expanded(
             child: SizedBox(
-              height: 150.h,
+              height: 100,
               child: Container(
-                padding: const EdgeInsets.only(left: 8.0, right: 16.0, top: 8.0).r,
+                padding: const EdgeInsets.only(left: 2, right: 8.0, top: 4.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(item.title,
-                      style: TextStyle(fontSize: 24.sp),
+                      style: const TextStyle(fontSize: 16),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(item.author, style: TextStyle(fontSize: 20.sp, color: Colors.grey)),
+                        Text(item.author, style: const TextStyle(fontSize: 14, color: Colors.grey)),
                         IconButton(
                           icon: const Icon(Icons.add),
-                          iconSize: 32.r,
+                          iconSize: 20,
                           onPressed: () async => await _showAddSongDialog(item, controller),
                         )
                       ],
@@ -284,8 +283,8 @@ Future<void> _showAddSongDialog(SearchResultItem item, SearchPageController cont
         return AlertDialog(
           title: const Text('Add Song', style: TextStyle(fontFamily: 'Consolas')),
           content: SizedBox(
-            width: 500.w,
-            height: 200.h,
+            width: 500,
+            height: 150,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: contentChildren,

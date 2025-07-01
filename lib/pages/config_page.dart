@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:bili_music/services/bili_service.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-
 
 
 class ConfigPage extends StatelessWidget {
@@ -17,7 +15,7 @@ class ConfigPage extends StatelessWidget {
         children: [
           InkWell(
             child: Container(
-              padding: const EdgeInsets.only(top: 8, bottom: 8).h,
+              padding: const EdgeInsets.only(top: 8, bottom: 8),
               child: ListTile(
                 leading: const Icon(Icons.account_circle_rounded),
                 title: Obx(() => biliService.isLogin.value ? Text(biliService.uName.value) : const Text('点击登录')),
@@ -36,7 +34,7 @@ class ConfigPage extends StatelessWidget {
           ),
           InkWell(
             child: Container(
-              padding: const EdgeInsets.only(top: 8, bottom: 8).h,
+              padding: const EdgeInsets.only(top: 8, bottom: 8),
               child: const ListTile(
                 leading: Icon(Icons.key_rounded),
                 title: Text('LLM API'),

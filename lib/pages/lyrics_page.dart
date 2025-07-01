@@ -1,6 +1,5 @@
 import 'package:bili_music/models/lyrics_item.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:bili_music/services/audio_play_service.dart';
 import 'package:bili_music/services/playlist_service.dart';
@@ -45,7 +44,7 @@ class LyricsPageController extends GetxController {
 
   void scrollToCurrentLine() {
     if (scrollController.hasClients) {
-      final itemHeight = 90.h;
+      const itemHeight = 90.0;
       final targetOffset = currentLyricsIndex.value * itemHeight;
       scrollController.animateTo(
         targetOffset.clamp(0.0, scrollController.position.maxScrollExtent),
@@ -100,7 +99,7 @@ class LyricsPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text('Bili Music', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 42.sp, fontFamily: 'Consolas')),
+        title: const Text('Bili Music', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 42, fontFamily: 'Consolas')),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Obx(() => lyricsController.lyrics.isEmpty ?
@@ -115,8 +114,8 @@ class LyricsPage extends StatelessWidget {
             itemCount: lyricsController.lyrics.length + 14,
             itemBuilder: (context, index) {
               if (index < 7 || index >= lyricsController.lyrics.length + 7) {
-                return SizedBox(
-                  height: 90.h,
+                return const SizedBox(
+                  height: 90,
                 );
               } else {
                 return Obx(() {
@@ -125,12 +124,12 @@ class LyricsPage extends StatelessWidget {
                   return InkWell(
                     onTap: () => lyricsController.seekToLyric(index - 7),
                     child: SizedBox(
-                      height: 90.h,
+                      height: 90,
                       child: Center(
                         child: Text(item.text,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: isCurrent? 30.sp : 24.sp,
+                            fontSize: isCurrent? 30 : 24,
                             color: isCurrent? Theme.of(context).colorScheme.primary : Colors.black,
                             fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
                           ),

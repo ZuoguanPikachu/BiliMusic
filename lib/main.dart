@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
 import 'package:hive_flutter/adapters.dart';
@@ -35,28 +34,21 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(720, 1560),
-      minTextAdapt: true,
-      splitScreenMode: true,
-      builder: (context, child) {
-        return GetMaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'Bili Music',
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-            useMaterial3: true,
-          ),
-          // home: TabPage(),
-          initialRoute: '/',
-          getPages: [
-            GetPage(name: '/', page: () => TabPage()),
-            GetPage(name: '/login', page: () => LoginPage()),
-            GetPage(name: '/llm', page: () => LLMApiPage()),
-            GetPage(name: '/lyrics', page: () => LyricsPage()),
-          ],
-        );
-      },
+    return GetMaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Bili Music',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
+      // home: TabPage(),
+      initialRoute: '/',
+      getPages: [
+        GetPage(name: '/', page: () => TabPage()),
+        GetPage(name: '/login', page: () => LoginPage()),
+        GetPage(name: '/llm', page: () => LLMApiPage()),
+        GetPage(name: '/lyrics', page: () => LyricsPage()),
+      ],
     );
   }
 }
@@ -96,7 +88,7 @@ class TabPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text('Bili Music', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 42.sp, fontFamily: 'Consolas')),
+        title: const Text('Bili Music', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24, fontFamily: 'Consolas')),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: PageView(

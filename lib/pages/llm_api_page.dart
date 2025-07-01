@@ -1,6 +1,5 @@
 import 'package:bili_music/services/llm_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 
@@ -48,11 +47,11 @@ class LLMApiPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text('Bili Music', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 42.sp, fontFamily: 'Consolas')),
+        title: const Text('Bili Music', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24, fontFamily: 'Consolas')),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Padding(
-        padding: const EdgeInsets.only(left: 48, right: 48, top: 32).w,
+        padding: const EdgeInsets.only(left: 20, right: 20, top: 16),
         child: Column(
           children: [
             Obx(() => TextField(
@@ -67,7 +66,7 @@ class LLMApiPage extends StatelessWidget {
               ),
               controller: baseUrlController,
             )),
-            SizedBox(height: 32.h),
+            const SizedBox(height: 24),
             Obx(() => TextField(
               decoration: InputDecoration(
                 labelText: 'Model Name',
@@ -80,7 +79,7 @@ class LLMApiPage extends StatelessWidget {
               ),
               controller: modelNameController,
             )),
-            SizedBox(height: 32.h),
+            const SizedBox(height: 24),
             Obx(() => TextField(
               decoration: InputDecoration(
                 labelText: 'API Key',
@@ -93,7 +92,7 @@ class LLMApiPage extends StatelessWidget {
               ),
               controller: apiKeyController,
             )),
-            SizedBox(height: 64.h),
+            const SizedBox(height: 32),
             Row(
               children: [
                 Expanded(

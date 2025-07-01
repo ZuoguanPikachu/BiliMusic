@@ -36,7 +36,6 @@ dependencies:
 
   get: ^4.7.2
   dio: ^5.8.0+1
-  flutter_screenutil: ^5.9.3
   flutter_snake_navigationbar: ^0.6.1
   crypto: ^3.0.6
   dio_cookie_manager: ^3.2.0
