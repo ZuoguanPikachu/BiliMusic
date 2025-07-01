@@ -1,123 +1,11 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:bili_music/services/bili_service.dart';
-import 'package:bili_music/services/audio_play_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:bili_music/models/song_model.dart';
-import 'package:bili_music/services/playlist_service.dart';
-import 'package:bili_music/services/llm_service.dart';
 import 'package:bili_music/models/search_result_item.dart';
 import 'package:bili_music/models/detail_info.dart';
+import '../controller.dart';
 
-
-
-class SearchPageController extends GetxController {
-  final biliService = Get.find<BiliService>();
-  final audioPlayService = Get.find<AudioPlayService>();
-  final playListService = Get.find<PlayListService>();
-  final llmService = Get.find<LLMService>();
-  final playerId = 'searchPage';
-
-  RxList<SearchResultItem> searchResults = <SearchResultItem>[].obs;
-  RxBool isLoading = false.obs;
-
-  Future<void> search(String keyword) async{
-    try {
-      isLoading.value = true;
-      final results = await biliService.search(keyword);
-      searchResults.value = results;
-    } catch (e) {
-      Get.snackbar('Error', '$e');
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> play(SearchResultItem item) async {
-    await audioPlayService.play(playerId, searchResultItem: item);
-  }
-
-  Future<void> addToPlaylist(Song song) async {
-    await playListService.addSong(song);
-  }
-
-  Future<DetailInfo> getDetailInfo(SearchResultItem info) async {
-    final results = await Future.wait([
-      llmService.extractInfo(info.title),
-      biliService.getCid(info.id),
-    ]);
-
-    final detailInfo = results[0] as DetailInfo;
-    final cid = results[1] as num;
-
-    detailInfo.title ??= info.title;
-    detailInfo.cid = cid;
-
-    return detailInfo;
-  }
-
-  void updatePlaylistPlayerIndex() {
-    audioPlayService.updateIndex('playlistPage');
-  }
-}
-
-class SearchPage extends StatelessWidget {
-  final SearchPageController controller = Get.put(SearchPageController());
-  SearchPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SearchBar(controller: controller),
-        Expanded(
-          child: Obx(() => controller.isLoading.value ?
-            const Center(child: CircularProgressIndicator()) :
-            ListView.builder(
-              itemCount: controller.searchResults.length,
-              itemBuilder: (context, index) => SearchResultItemWidget(item: controller.searchResults[index], controller: controller),
-            ),
-          ),
-        ),
-      ]
-    );
-  }
-}
-
-class SearchBar extends StatelessWidget {
-  SearchBar({super.key, required this.controller});
-
-  final SearchPageController controller;
-  final textController = TextEditingController();
-  final showClearButton = false.obs;
-
-  @override
-  Widget build(BuildContext context) {
-    textController.addListener(() {
-      showClearButton.value = textController.text.isNotEmpty;
-    });
-
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Obx(() => TextField(
-        controller: textController,
-        decoration: InputDecoration(
-          hintText: 'Search',
-          hintStyle: const TextStyle(fontFamily: 'Consolas'),
-          border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(26))),
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: showClearButton.value ?
-            IconButton(
-              icon: const Icon(Icons.clear_rounded, color: Colors.grey),
-              onPressed: () => textController.clear(),
-            ) :
-            null,
-        ),
-        onSubmitted: controller.search,
-      )),
-    );
-  }
-}
 
 class SearchResultItemWidget extends StatelessWidget {
   final SearchResultItem item;
@@ -230,11 +118,11 @@ Future<void> _showAddSongDialog(SearchResultItem item, SearchPageController cont
                 labelText: 'Title',
                 labelStyle: const TextStyle(fontFamily: 'Consolas'),
                 suffixIcon: showTitleClearButton.value ?
-                  IconButton(
-                    icon: const Icon(Icons.clear_rounded, color: Colors.grey),
-                    onPressed: () => titleController.clear(),
-                  ) :
-                  null,
+                IconButton(
+                  icon: const Icon(Icons.clear_rounded, color: Colors.grey),
+                  onPressed: () => titleController.clear(),
+                ) :
+                null,
               ),
             )),
             Obx(() => TextField(
@@ -243,11 +131,11 @@ Future<void> _showAddSongDialog(SearchResultItem item, SearchPageController cont
                 labelText: 'Author',
                 labelStyle: const TextStyle(fontFamily: 'Consolas'),
                 suffixIcon: showAuthorClearButton.value ?
-                  IconButton(
-                    icon: const Icon(Icons.clear_rounded, color: Colors.grey),
-                    onPressed: () => authorController.clear(),
-                  ) :
-                  null,
+                IconButton(
+                  icon: const Icon(Icons.clear_rounded, color: Colors.grey),
+                  onPressed: () => authorController.clear(),
+                ) :
+                null,
               ),
             )),
           ];
