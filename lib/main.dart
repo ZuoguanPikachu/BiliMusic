@@ -20,6 +20,7 @@ Future<void> main() async {
   Hive.registerAdapter(SongAdapter());
   await Hive.openBox<Song>('playlist');
   await Hive.openBox('llm_api');
+  await Hive.openBox('play_settings');
 
   runApp(const MyApp());
   Get.put(BiliService());

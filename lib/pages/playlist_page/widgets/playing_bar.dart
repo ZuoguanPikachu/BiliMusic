@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:bili_music/models/play_mode.dart';
 import '../controller.dart';
 
 
@@ -75,6 +76,17 @@ class ControlButtons extends StatelessWidget {
   final PlayListPageController controller;
   const ControlButtons({super.key, required this.controller});
 
+  IconData getModeIcon(PlayMode mode) {
+    switch (mode) {
+      case PlayMode.single:
+        return Icons.repeat_one;
+      case PlayMode.loop:
+        return Icons.repeat;
+      case PlayMode.shuffle:
+        return Icons.shuffle;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -108,16 +120,17 @@ class ControlButtons extends StatelessWidget {
             await controller.playNext();
           }
         ),
-        IconButton(
-          icon: const Icon(Icons.repeat),
+        Obx(() => IconButton(
+          icon: Icon(getModeIcon(controller.playMode.value)),
           iconSize: 32,
-          onPressed: () {}
-        ),
+          onPressed: () async {
+            controller.switchPlayMode();
+          }
+        )),
       ]
     );
   }
 }
-
 
 class ProgressBar extends StatelessWidget {
   final PlayListPageController controller;

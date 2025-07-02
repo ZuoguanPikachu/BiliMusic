@@ -1,8 +1,10 @@
+import 'dart:math';
 import 'package:bili_music/models/search_result_item.dart';
 import 'package:bili_music/services/playlist_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:bili_music/models/song_model.dart';
+import 'package:bili_music/models/play_mode.dart';
 import 'bili_service.dart';
 import 'package:get/get.dart';
 
@@ -19,6 +21,14 @@ class AudioPlayService {
   Future<void> init() async {
     playlistAudioPlayer = await initPlaylistAudioPlayer();
     searchResultAudioPlayer = AudioPlayer();
+  }
+
+  void setPlayMode(String id, PlayMode playMode){
+    if (id == 'playlistPage'){
+      playlistAudioPlayer.setPlayMode(playMode);
+    }else{
+      throw Exception('Invalid id');
+    }
   }
 
   Future<void> play(String id, {int? index, SearchResultItem? searchResultItem}) async {
@@ -122,20 +132,20 @@ class AudioPlayService {
       playlistAudioPlayer.updateIndex();
     }
   }
-
 }
 
 class PlaylistAudioPlayer extends BaseAudioHandler with QueueHandler, SeekHandler {
   final AudioPlayer audioPlayer = AudioPlayer();
   final playListService = Get.find<PlayListService>();
   final Rxn<Song> currentSong = Rxn<Song>();
-  RxInt currentIndex = (-1).obs;
+  final RxInt currentIndex = (-1).obs;
+  late PlayMode playMode;
+  List<Song> shuffledSongs = [];
 
   final headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
     'Referer': 'https://www.bilibili.com/'
   };
-
 
   PlaylistAudioPlayer() {
     audioPlayer.playbackEventStream.map(_transformEvent).pipe(playbackState);
@@ -155,8 +165,8 @@ class PlaylistAudioPlayer extends BaseAudioHandler with QueueHandler, SeekHandle
       systemActions: {MediaAction.seek},
       playing: audioPlayer.playing,
       processingState: audioPlayer.processingState == ProcessingState.completed
-          ? AudioProcessingState.completed
-          : AudioProcessingState.ready,
+        ? AudioProcessingState.completed
+        : AudioProcessingState.ready,
       updatePosition: audioPlayer.position,
       bufferedPosition: audioPlayer.bufferedPosition,
       speed: audioPlayer.speed,
@@ -171,6 +181,10 @@ class PlaylistAudioPlayer extends BaseAudioHandler with QueueHandler, SeekHandle
       artist: song.author,
       duration: audioPlayer.duration,
     ));
+  }
+
+  void setPlayMode(PlayMode playMode) {
+    this.playMode = playMode;
   }
 
   Future<void> playByIndex(int index) async {
@@ -188,9 +202,10 @@ class PlaylistAudioPlayer extends BaseAudioHandler with QueueHandler, SeekHandle
       return;
     }
 
-    final index = playListService.getBox().keys.toList().indexOf(
-      '${currentSong.value!.id}-${currentSong.value!.cid}'
-    );
+    List<Song> songs = playListService.getBox().values.toList();
+    songs.sort((a, b) => -a.timestamp.compareTo(b.timestamp));
+
+    final index = songs.indexWhere((song) => song.id == currentSong.value!.id && song.cid == currentSong.value!.cid);
     if (index == -1){
       currentIndex.value -= 1;
     } else {
@@ -215,17 +230,50 @@ class PlaylistAudioPlayer extends BaseAudioHandler with QueueHandler, SeekHandle
 
   @override
   Future<void> skipToPrevious() async {
-    final length = playListService.getBox().length;
-    final index = (currentIndex.value + length - 1) % length;
+    final List<Song> songs = playListService.getBox().values.toList();
+    final length = songs.length;
+    int index;
+    if (currentIndex.value == -1 || length == 1){
+      index = 0;
+    }
+    else if (playMode == PlayMode.single || playMode == PlayMode.loop){
+      index = (currentIndex.value + length - 1) % length;
+    }
+    else {
+      index = shuffleIndex(songs);
+    }
+
     currentIndex.value = index;
     await playByIndex(index);
   }
 
   @override
   Future<void> skipToNext() async {
-    final index = (currentIndex.value + 1) % playListService.getBox().length;
+    final List<Song> songs = playListService.getBox().values.toList();
+    final length = songs.length;
+    int index;
+    if (currentIndex.value == -1 || length == 1){
+      index = 0;
+    }
+    else if (playMode == PlayMode.single || playMode == PlayMode.loop){
+      index = (currentIndex.value + 1) % length;
+    }
+    else {
+      index = shuffleIndex(songs);
+    }
+
     currentIndex.value = index;
     await playByIndex(index);
+  }
+
+  int shuffleIndex(List<Song> songs){
+    var random = Random();
+    int index;
+    do {
+      index = random.nextInt(songs.length);
+    } while(songs[index].id == currentSong.value!.id && songs[index].cid == currentSong.value!.cid);
+
+    return index;
   }
 }
 
@@ -246,3 +294,4 @@ Future<String> getAudioUrl(String id, {num? cid}) async {
   final biliService = Get.find<BiliService>();
   return await biliService.getAudioUrl(id, cid: cid);
 }
+

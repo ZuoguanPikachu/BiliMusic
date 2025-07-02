@@ -1,9 +1,11 @@
 import 'package:get/get.dart';
+import 'package:hive/hive.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:bili_music/services/bili_service.dart';
 import 'package:bili_music/services/audio_play_service.dart';
 import 'package:bili_music/services/playlist_service.dart';
 import 'package:bili_music/models/song_model.dart';
+import 'package:bili_music/models/play_mode.dart';
 
 
 class PlayListPageController extends GetxController {
@@ -18,12 +20,14 @@ class PlayListPageController extends GetxController {
   RxBool isPlaying = false.obs;
   RxInt currentIndex = (-1).obs;
   Rxn<Song> currentSong = Rxn<Song>();
+  Rx<PlayMode> playMode = PlayMode.values[Hive.box('play_settings').get('play_mode', defaultValue: 0)].obs;
 
   @override
   Future<void> onInit() async {
     super.onInit();
     await audioPlayService.init();
     isInitialized = true;
+    audioPlayService.setPlayMode(playerId, playMode.value);
     ever(audioPlayService.currentSong(playerId), (song) => currentSong.value = song);
     ever(audioPlayService.currentIndex(playerId), (index) => currentIndex.value = index);
 
@@ -33,7 +37,12 @@ class PlayListPageController extends GetxController {
       isPlaying.value = state.playing;
 
       if (state.processingState == ProcessingState.completed && isPlaying.value){
-        await audioPlayService.playNext(playerId);
+        if (playMode.value == PlayMode.single){
+          await audioPlayService.play(playerId, index: currentIndex.value);
+        }
+        else{
+          await audioPlayService.playNext(playerId);
+        }
       }
     });
   }
@@ -68,10 +77,18 @@ class PlayListPageController extends GetxController {
 
   Future<void> updateSongs(List<Song> songs) async {
     await playListService.addSongs(songs);
+    audioPlayService.updateIndex(playerId);
   }
 
   Future<void> removeSong(Song song) async {
     await playListService.removeSong(song);
     audioPlayService.updateIndex(playerId);
+  }
+
+  void switchPlayMode() async {
+    playMode.value = PlayMode.values[(playMode.value.index + 1) % PlayMode.values.length];
+    Hive.box('play_settings').put('play_mode', playMode.value.index);
+    audioPlayService.setPlayMode(playerId, playMode.value);
+
   }
 }
