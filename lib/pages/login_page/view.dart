@@ -40,6 +40,7 @@ class LoginPage extends StatelessWidget{
 
                 Get.back();
                 Get.snackbar('Tips', 'Login Success!');
+                return;
               }
             }
           }

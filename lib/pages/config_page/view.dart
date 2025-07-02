@@ -69,7 +69,7 @@ void showLogoutDialog() {
           onPressed: () async {
             CookieManager cookieManager = CookieManager.instance();
             await cookieManager.deleteAllCookies();
-            await biliService.clearCookies();
+            await biliService.logout();
             await biliService.getWbiKeys();
 
             Get.back();

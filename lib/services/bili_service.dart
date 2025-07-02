@@ -12,14 +12,21 @@ import 'package:bili_music/models/search_result_item.dart';
 import 'package:bili_music/models/lyrics_item.dart';
 
 
-
 class BiliService {
   late Dio dio;
   late PersistCookieJar cookieJar;
   late String imgKey;
   late String subKey;
+  int count = 0;
   Rx<bool> isLogin = false.obs;
   Rx<String> uName = ''.obs;
+
+  final List<int> mixinKeyEncTab = [
+    46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49,
+    33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40,
+    61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11,
+    36, 20, 34, 44, 52
+  ];
 
   BiliService() {
     dio = Dio(
@@ -30,8 +37,26 @@ class BiliService {
         },
       ),
     );
+  }
 
-    getWbiKeys();
+  Future init(List<inappwebview.Cookie> cookies) async {
+    await initCookieJar();
+    await setCookies(cookies);
+    await getWbiKeys();
+  }
+
+  Future initCookieJar() async {
+    final exists = dio.interceptors.any((e) => e is CookieManager);
+
+    if (!exists) {
+      final Directory appDocDir = await getApplicationDocumentsDirectory();
+      final String appDocPath = appDocDir.path;
+      cookieJar = PersistCookieJar(
+        storage: FileStorage("$appDocPath/.cookies/"),
+        ignoreExpires: true,
+      );
+      dio.interceptors.add(CookieManager(cookieJar));
+    }
   }
 
   Future<void> setCookies(List<inappwebview.Cookie> cookies) async {
@@ -47,31 +72,45 @@ class BiliService {
       return ioCookie;
     }).toList();
 
-    await cookieJar.saveFromResponse(Uri.parse('https://www.bilibili.com/'), ioCookies);
+    final uri = Uri.parse('https://www.bilibili.com/');
+    await cookieJar.delete(uri);
+    await cookieJar.saveFromResponse(uri, ioCookies);
   }
 
-  Future<void> clearCookies() async {
+  Future<void> logout() async {
+    final removeName = [
+      'SESSDATA', 'bili_jct', 'DedeUserID', 'DedeUserID__ckMd5', 'sid'
+    ];
+    List<Cookie> cookies = await cookieJar.loadForRequest(Uri.parse('https://www.bilibili.com/'));
+    cookies.removeWhere((cookie) => removeName.contains(cookie.name));
+
     await cookieJar.deleteAll();
+    await cookieJar.saveFromResponse(Uri.parse('https://www.bilibili.com/'), cookies);
   }
 
-  // Future<void> logout() async {
-  //   for (var domain in ['https://www.bilibili.com/', 'https://api.bilibili.com/']){
-  //     Uri uri = Uri.parse(domain);
-  //     List<Cookie> cookies = await cookieJar.loadForRequest(uri);
-  //     List<Cookie> filteredCookies = cookies.where((cookie) => cookie.name != 'SESSDATA').toList();
-  //     await cookieJar.delete(uri);
-  //     if (filteredCookies.isNotEmpty) {
-  //       await cookieJar.saveFromResponse(uri, filteredCookies);
-  //     }
-  //   }
-  // }
+  Future getWbiKeys() async {
+    count += 1;
+    try {
+      final response = await dio.get('https://api.bilibili.com/x/web-interface/nav');
+      final jsonContent = response.data;
+      final imgUrl = jsonContent['data']['wbi_img']['img_url'] as String;
+      final subUrl = jsonContent['data']['wbi_img']['sub_url'] as String;
 
-  final List<int> mixinKeyEncTab = [
-    46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49,
-    33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40,
-    61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11,
-    36, 20, 34, 44, 52
-  ];
+      imgKey = imgUrl.split('/').last.split('.').first;
+      subKey = subUrl.split('/').last.split('.').first;
+
+      if (jsonContent['message'] as String == '0'){
+        isLogin.value = true;
+        uName.value = jsonContent['data']['uname'] as String;
+      }else{
+        isLogin.value = false;
+        uName.value = '';
+      }
+
+    } on DioException catch (e) {
+      throw Exception('Failed to load WBI keys: ${e.message}');
+    }
+  }
 
   String getMixinKey(String orig) {
     return mixinKeyEncTab.fold('', (s, i) => s + orig[i]).substring(0, 32);
@@ -99,39 +138,6 @@ class BiliService {
     return filteredParams;
   }
 
-  Future getWbiKeys() async {
-    final Directory appDocDir = await getApplicationDocumentsDirectory();
-    final String appDocPath = appDocDir.path;
-    cookieJar = PersistCookieJar(
-      storage: FileStorage("$appDocPath/.cookies/"),
-      ignoreExpires: true,
-    );
-    dio.interceptors.add(CookieManager(cookieJar));
-
-    try {
-      await dio.get('https://www.bilibili.com/');
-
-      final response = await dio.get('https://api.bilibili.com/x/web-interface/nav');
-      final jsonContent = response.data;
-      final imgUrl = jsonContent['data']['wbi_img']['img_url'] as String;
-      final subUrl = jsonContent['data']['wbi_img']['sub_url'] as String;
-
-      imgKey = imgUrl.split('/').last.split('.').first;
-      subKey = subUrl.split('/').last.split('.').first;
-
-      if (jsonContent['message'] as String == '0'){
-        isLogin.value = true;
-        uName.value = jsonContent['data']['uname'] as String;
-      }else{
-        isLogin.value = false;
-        uName.value = '';
-      }
-
-    } on DioException catch (e) {
-      throw Exception('Failed to load WBI keys: ${e.message}');
-    }
-  }
-
   Future<List<SearchResultItem>> search(String keyword) async {
     try {
       final response = await dio.get('https://api.bilibili.com/x/web-interface/wbi/search/type',
@@ -143,7 +149,7 @@ class BiliService {
       final jsonContent = response.data;
 
       if (jsonContent['data'].containsKey('v_voucher')){
-        throw Exception('Risk control triggered. Please log in to BiliBili to continue.');
+        throw Exception('Risk control triggered. Please log in BiliBili.');
       }
 
       List<SearchResultItem> result = [];
