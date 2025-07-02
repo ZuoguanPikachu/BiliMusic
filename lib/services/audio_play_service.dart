@@ -175,7 +175,9 @@ class PlaylistAudioPlayer extends BaseAudioHandler with QueueHandler, SeekHandle
 
   Future<void> playByIndex(int index) async {
     currentIndex.value = index;
-    final song = playListService.getBox().getAt(index)!;
+    List<Song> songs = playListService.getBox().values.toList();
+    songs.sort((a, b) => -a.timestamp.compareTo(b.timestamp));
+    final song = songs[index];
     setMediaItem(song);
     await audioPlayer.setUrl(await getAudioUrl(song.id, cid: song.cid), headers: headers);
     await play();

@@ -66,6 +66,10 @@ class PlayListPageController extends GetxController {
     await playListService.addSong(song);
   }
 
+  Future<void> updateSongs(List<Song> songs) async {
+    await playListService.addSongs(songs);
+  }
+
   Future<void> removeSong(Song song) async {
     await playListService.removeSong(song);
     audioPlayService.updateIndex(playerId);

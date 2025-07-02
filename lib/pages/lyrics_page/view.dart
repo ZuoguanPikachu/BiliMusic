@@ -15,7 +15,7 @@ class LyricsPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text('Bili Music', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 42, fontFamily: 'Consolas')),
+        title: const Text('Bili Music', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24, fontFamily: 'Consolas')),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Obx(() => lyricsController.lyrics.isEmpty ?
@@ -31,7 +31,7 @@ class LyricsPage extends StatelessWidget {
             itemBuilder: (context, index) {
               if (index < 7 || index >= lyricsController.lyrics.length + 7) {
                 return const SizedBox(
-                  height: 90,
+                  height: 55,
                 );
               } else {
                 return Obx(() {
@@ -40,12 +40,12 @@ class LyricsPage extends StatelessWidget {
                   return InkWell(
                     onTap: () => lyricsController.seekToLyric(index - 7),
                     child: SizedBox(
-                      height: 90,
+                      height: 55,
                       child: Center(
                         child: Text(item.text,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: isCurrent? 30 : 24,
+                            fontSize: isCurrent? 20 : 16,
                             color: isCurrent? Theme.of(context).colorScheme.primary : Colors.black,
                             fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
                           ),

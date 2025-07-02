@@ -143,7 +143,8 @@ Future<void> _showAddSongDialog(SearchResultItem item, SearchPageController cont
             TextButton(onPressed: () => Get.back(), child: const Text('CANCEL', style: TextStyle(fontFamily: 'Consolas'))),
             TextButton(
               onPressed: () async {
-                final song = Song(item.id, detailInfo.cid, titleController.text, authorController.text);
+                int timestamp = DateTime.now().millisecondsSinceEpoch;
+                final song = Song(item.id, detailInfo.cid, titleController.text, authorController.text, timestamp);
                 await controller.addToPlaylist(song);
                 controller.updatePlaylistPlayerIndex();
                 Get.back();

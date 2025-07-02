@@ -47,26 +47,24 @@ class BiliService {
       return ioCookie;
     }).toList();
 
-    for (var domain in ['https://www.bilibili.com/', 'https://api.bilibili.com/']) {
-      await cookieJar.saveFromResponse(Uri.parse(domain), ioCookies);
-    }
+    await cookieJar.saveFromResponse(Uri.parse('https://www.bilibili.com/'), ioCookies);
   }
 
   Future<void> clearCookies() async {
     await cookieJar.deleteAll();
   }
 
-  Future<void> logout() async {
-    for (var domain in ['https://www.bilibili.com/', 'https://api.bilibili.com/']){
-      Uri uri = Uri.parse(domain);
-      List<Cookie> cookies = await cookieJar.loadForRequest(uri);
-      List<Cookie> filteredCookies = cookies.where((cookie) => cookie.name != 'SESSDATA').toList();
-      await cookieJar.delete(uri);
-      if (filteredCookies.isNotEmpty) {
-        await cookieJar.saveFromResponse(uri, filteredCookies);
-      }
-    }
-  }
+  // Future<void> logout() async {
+  //   for (var domain in ['https://www.bilibili.com/', 'https://api.bilibili.com/']){
+  //     Uri uri = Uri.parse(domain);
+  //     List<Cookie> cookies = await cookieJar.loadForRequest(uri);
+  //     List<Cookie> filteredCookies = cookies.where((cookie) => cookie.name != 'SESSDATA').toList();
+  //     await cookieJar.delete(uri);
+  //     if (filteredCookies.isNotEmpty) {
+  //       await cookieJar.saveFromResponse(uri, filteredCookies);
+  //     }
+  //   }
+  // }
 
   final List<int> mixinKeyEncTab = [
     46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49,
@@ -143,6 +141,10 @@ class BiliService {
         }),
       );
       final jsonContent = response.data;
+
+      if (jsonContent['data'].containsKey('v_voucher')){
+        throw Exception('Risk control triggered. Please log in to BiliBili to continue.');
+      }
 
       List<SearchResultItem> result = [];
       jsonContent['data']['result'].forEach((item) {

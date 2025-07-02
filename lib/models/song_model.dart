@@ -16,5 +16,8 @@ class Song extends HiveObject {
   @HiveField(3)
   String author;
 
-  Song(this.id, this.cid, this.title, this.author);
+  @HiveField(4)
+  int timestamp;
+
+  Song(this.id, this.cid, this.title, this.author, this.timestamp);
 }

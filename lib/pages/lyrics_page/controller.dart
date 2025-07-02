@@ -43,7 +43,7 @@ class LyricsPageController extends GetxController {
 
   void scrollToCurrentLine() {
     if (scrollController.hasClients) {
-      const itemHeight = 90.0;
+      const itemHeight = 55.0;
       final targetOffset = currentLyricsIndex.value * itemHeight;
       scrollController.animateTo(
         targetOffset.clamp(0.0, scrollController.position.maxScrollExtent),

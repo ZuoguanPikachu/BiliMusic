@@ -13,12 +13,37 @@ class SongList extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
       valueListenable: controller.playListService.getBox().listenable(),
-      builder: (context, Box box, _) {
-        return ListView.builder(
-          itemCount: box.length,
-          itemBuilder: (context, index) {
-            return SongListItem(index: index, songItem: box.getAt(index), controller: controller);
-          }
+      builder: (context, Box<Song> box, _) {
+        List<Song> songs = box.values.toList();
+        songs.sort((a, b) => -a.timestamp.compareTo(b.timestamp));
+
+        return ReorderableListView(
+          buildDefaultDragHandles: true,
+          onReorder: (oldIndex, newIndex) async {
+            List<Song> needUpdateSongs;
+            if (newIndex > oldIndex) {
+              newIndex -= 1;
+              needUpdateSongs = [Song(songs[oldIndex].id, songs[oldIndex].cid, songs[oldIndex].title, songs[oldIndex].author, songs[newIndex].timestamp)];
+              for (int i = oldIndex+1; i <= newIndex; i++) {
+                needUpdateSongs.add(Song(songs[i].id, songs[i].cid, songs[i].title, songs[i].author, songs[i-1].timestamp));
+              }
+            } else {
+              needUpdateSongs = [Song(songs[oldIndex].id, songs[oldIndex].cid, songs[oldIndex].title, songs[oldIndex].author, songs[newIndex].timestamp)];
+              for (int i = newIndex; i < oldIndex; i++) {
+                needUpdateSongs.add(Song(songs[i].id, songs[i].cid, songs[i].title, songs[i].author, songs[i+1].timestamp));
+              }
+            }
+            controller.updateSongs(needUpdateSongs);
+          },
+          children: [
+            for (int i = 0; i < songs.length; i++)
+              SongListItem(
+                key: ValueKey("${songs[i].id}-${songs[i].cid}"),
+                index: i,
+                songItem: songs[i],
+                controller: controller,
+              )
+          ],
         );
       }
     );
@@ -43,7 +68,7 @@ class SongListItem extends StatelessWidget {
         trailing: IconButton(
           icon: const Icon(Icons.more_vert_rounded),
           onPressed: () {
-            _showEditDialog(songItem, controller);
+            _showEditDialog(index, songItem, controller);
           },
         ),
       ),
@@ -54,7 +79,7 @@ class SongListItem extends StatelessWidget {
   }
 }
 
-void _showEditDialog(Song songItem, PlayListPageController controller) {
+void _showEditDialog(int index, Song songItem, PlayListPageController controller) {
   final titleController = TextEditingController(text: songItem.title);
   final authorController = TextEditingController(text: songItem.author);
 
@@ -122,7 +147,7 @@ void _showEditDialog(Song songItem, PlayListPageController controller) {
         TextButton(
           child: const Text('SAVE', style: TextStyle(fontFamily: 'Consolas')),
           onPressed: () async {
-            await controller.updateSong(Song(songItem.id, songItem.cid, titleController.text, authorController.text));
+            await controller.updateSong(Song(songItem.id, songItem.cid, titleController.text, authorController.text, songItem.timestamp));
             Get.back();
           },
         ),
