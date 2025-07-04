@@ -14,7 +14,6 @@ import 'package:bili_music/services/playlist_service.dart';
 import 'package:bili_music/services/llm_service.dart';
 import 'package:bili_music/models/song_model.dart';
 
-
 Future<void> main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(SongAdapter());

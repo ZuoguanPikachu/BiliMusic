@@ -112,6 +112,9 @@ flutter:
         - asset: assets/fonts/Consolas-Regular.ttf
         - asset: assets/fonts/Consolas-Bold.ttf
 
+  assets:
+    - assets/icon/icon.png
+
 flutter_launcher_icons:
   android: true
   image_path: "assets/icon/icon.png"

@@ -1,10 +1,13 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:bili_music/models/search_result_item.dart';
 import 'package:bili_music/services/playlist_service.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:bili_music/models/song_model.dart';
 import 'package:bili_music/models/play_mode.dart';
+import 'package:path_provider/path_provider.dart';
 import 'bili_service.dart';
 import 'package:get/get.dart';
 
@@ -77,7 +80,7 @@ class AudioPlayService {
 
   Future<void> seek(String id, Duration position) async {
     if (id == 'playlistPage') {
-      await playlistAudioPlayer.audioPlayer.seek(position);
+      await playlistAudioPlayer.seek(position);
     } else if (id =='searchPage') {
       await searchResultAudioPlayer.seek(position);
     }
@@ -134,7 +137,7 @@ class AudioPlayService {
   }
 }
 
-class PlaylistAudioPlayer extends BaseAudioHandler with QueueHandler, SeekHandler {
+class PlaylistAudioPlayer extends BaseAudioHandler with SeekHandler {
   final AudioPlayer audioPlayer = AudioPlayer();
   final playListService = Get.find<PlayListService>();
   final Rxn<Song> currentSong = Rxn<Song>();
@@ -148,29 +151,37 @@ class PlaylistAudioPlayer extends BaseAudioHandler with QueueHandler, SeekHandle
   };
 
   PlaylistAudioPlayer() {
-    audioPlayer.playbackEventStream.map(_transformEvent).pipe(playbackState);
+    audioPlayer.playerStateStream.listen((_) {
+      final playing = audioPlayer.playing;
+      Future.delayed(const Duration(milliseconds: 450), () {
+        playbackState.add(playbackState.value.copyWith(
+          controls: [
+            MediaControl.skipToPrevious,
+            if (playing) MediaControl.pause else MediaControl.play,
+            MediaControl.skipToNext,
+          ],
+          systemActions: const {
+            MediaAction.seek,
+          },
+          processingState: const {
+            ProcessingState.idle: AudioProcessingState.idle,
+            ProcessingState.loading: AudioProcessingState.loading,
+            ProcessingState.buffering: AudioProcessingState.buffering,
+            ProcessingState.ready: AudioProcessingState.ready,
+            ProcessingState.completed: AudioProcessingState.completed,
+          }[audioPlayer.processingState]!,
+          playing: playing,
+          updatePosition: audioPlayer.position,
+          bufferedPosition: audioPlayer.bufferedPosition,
+          speed: audioPlayer.speed,
+        ));
+      });
+
+    });
 
     audioPlayer.positionStream.listen((_) {
       mediaItem.add(mediaItem.value?.copyWith(duration: audioPlayer.duration));
     });
-  }
-
-  PlaybackState _transformEvent(PlaybackEvent event) {
-    return PlaybackState(
-      controls: [
-        MediaControl.skipToPrevious,
-        if (audioPlayer.playing) MediaControl.pause else MediaControl.play,
-        MediaControl.skipToNext,
-      ],
-      systemActions: {MediaAction.seek},
-      playing: audioPlayer.playing,
-      processingState: audioPlayer.processingState == ProcessingState.completed
-        ? AudioProcessingState.completed
-        : AudioProcessingState.ready,
-      updatePosition: audioPlayer.position,
-      bufferedPosition: audioPlayer.bufferedPosition,
-      speed: audioPlayer.speed,
-    );
   }
 
   void setMediaItem(Song song) {
@@ -227,6 +238,9 @@ class PlaylistAudioPlayer extends BaseAudioHandler with QueueHandler, SeekHandle
   Future<void> stop() async {
     await audioPlayer.stop();
   }
+
+  @override
+  Future<void> seek(Duration position) => audioPlayer.seek(position);
 
   @override
   Future<void> skipToPrevious() async {
@@ -294,4 +308,3 @@ Future<String> getAudioUrl(String id, {num? cid}) async {
   final biliService = Get.find<BiliService>();
   return await biliService.getAudioUrl(id, cid: cid);
 }
-
