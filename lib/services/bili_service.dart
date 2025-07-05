@@ -17,8 +17,10 @@ class BiliService {
   late PersistCookieJar cookieJar;
   late String imgKey;
   late String subKey;
-  Rx<bool> isLogin = false.obs;
-  Rx<String> uName = ''.obs;
+  final Rx<bool> isLogin = false.obs;
+  final Rx<String> uName = ''.obs;
+  final hasInit = false.obs;
+
 
   final List<int> mixinKeyEncTab = [
     46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49,
@@ -42,6 +44,7 @@ class BiliService {
     await initCookieJar();
     await setCookies(cookies);
     await getWbiKeys();
+    hasInit.value = true;
   }
 
   Future initCookieJar() async {

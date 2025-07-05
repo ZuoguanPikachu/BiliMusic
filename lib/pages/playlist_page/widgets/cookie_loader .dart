@@ -24,7 +24,10 @@ class CookieLoader extends StatelessWidget {
           onLoadStop: (controller, url) async {
             if (url!.host.contains('bilibili.com')){
               List<Cookie> cookies = await cookieManager.getCookies(url: url);
-              await biliService.init(cookies);
+              if (cookies.length >= 8){
+                await biliService.init(cookies);
+                print('load stop url: $url');
+              }
             }
           }
         )
