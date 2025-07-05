@@ -6,10 +6,12 @@ import 'package:bili_music/services/audio_play_service.dart';
 import 'package:bili_music/services/playlist_service.dart';
 import 'package:bili_music/models/song_model.dart';
 import 'package:bili_music/models/play_mode.dart';
+import 'package:bili_music/services/netease_service.dart';
 
 
 class PlayListPageController extends GetxController {
   final biliService = Get.find<BiliService>();
+  final neteaseService = Get.find<NeteaseService>();
   final playListService = Get.find<PlayListService>();
   final audioPlayService = Get.find<AudioPlayService>();
   final playerId = 'playlistPage';
@@ -89,6 +91,13 @@ class PlayListPageController extends GetxController {
     playMode.value = PlayMode.values[(playMode.value.index + 1) % PlayMode.values.length];
     Hive.box('play_settings').put('play_mode', playMode.value.index);
     audioPlayService.setPlayMode(playerId, playMode.value);
+  }
 
+  Future<String> getImageUrlByTitleAndAuthor(String title, String author) async {
+    return await neteaseService.getImageUrlByTitleAndAuthor(title, author);
+  }
+
+  Future<String> getIdByTitleAndAuthor(String title, String author) async {
+    return await neteaseService.getIdByTitleAndAuthor(title, author);
   }
 }

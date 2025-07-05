@@ -1,13 +1,11 @@
 import 'dart:io';
 import 'dart:math';
-import 'package:bili_music/models/search_result_item.dart';
+import 'package:bili_music/models/search_result.dart';
 import 'package:bili_music/services/playlist_service.dart';
-import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:bili_music/models/song_model.dart';
 import 'package:bili_music/models/play_mode.dart';
-import 'package:path_provider/path_provider.dart';
 import 'bili_service.dart';
 import 'package:get/get.dart';
 
@@ -34,7 +32,7 @@ class AudioPlayService {
     }
   }
 
-  Future<void> play(String id, {int? index, SearchResultItem? searchResultItem}) async {
+  Future<void> play(String id, {int? index, BiliSearchResult? searchResult}) async {
     await stop('searchPage');
     await pause('playlistPage');
 
@@ -43,8 +41,8 @@ class AudioPlayService {
       await playlistAudioPlayer.play();
     } else if (id == 'playlistPage' && index == null){
       await playlistAudioPlayer.play();
-    } else if (id =='searchPage' && searchResultItem!= null){
-      final url = await getAudioUrl(searchResultItem.id);
+    } else if (id =='searchPage' && searchResult!= null){
+      final url = await getAudioUrl(searchResult.id);
       await searchResultAudioPlayer.setUrl(url, headers: headers);
       await searchResultAudioPlayer.play();
     }
@@ -191,6 +189,7 @@ class PlaylistAudioPlayer extends BaseAudioHandler with SeekHandler {
       title: song.title,
       artist: song.author,
       duration: audioPlayer.duration,
+      artUri: Uri.parse(song.imageUrl),
     ));
   }
 

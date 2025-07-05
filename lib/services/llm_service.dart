@@ -55,10 +55,9 @@ class LLMService {
     final response = await dio.post(baseUrl, data: data, options: Options(headers: headers));
     final jsonContent = response.data;
     final llmOutput = json.decode(jsonContent['choices'][0]['message']['content'] as String);
-
-    return DetailInfo(
-      title: llmOutput['title'],
-      author: llmOutput['author'],
-    );
+    final detailInfo = DetailInfo();
+    detailInfo.title = llmOutput['title'];
+    detailInfo.author = llmOutput['author'];
+    return detailInfo;
   }
 }

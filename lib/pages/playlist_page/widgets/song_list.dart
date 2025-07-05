@@ -20,19 +20,19 @@ class SongList extends StatelessWidget {
         return ReorderableListView(
           buildDefaultDragHandles: true,
           onReorder: (oldIndex, newIndex) async {
-            List<Song> needUpdateSongs;
+            List<Song> needUpdateSongs = [];
             if (newIndex > oldIndex) {
               newIndex -= 1;
-              needUpdateSongs = [Song(songs[oldIndex].id, songs[oldIndex].cid, songs[oldIndex].title, songs[oldIndex].author, songs[newIndex].timestamp)];
               for (int i = oldIndex+1; i <= newIndex; i++) {
-                needUpdateSongs.add(Song(songs[i].id, songs[i].cid, songs[i].title, songs[i].author, songs[i-1].timestamp));
+                needUpdateSongs.add(songs[i].copyWith(timestamp: songs[i-1].timestamp));
               }
             } else {
-              needUpdateSongs = [Song(songs[oldIndex].id, songs[oldIndex].cid, songs[oldIndex].title, songs[oldIndex].author, songs[newIndex].timestamp)];
+              // needUpdateSongs = [songs[oldIndex].copyWith(timestamp: songs[newIndex].timestamp)];
               for (int i = newIndex; i < oldIndex; i++) {
-                needUpdateSongs.add(Song(songs[i].id, songs[i].cid, songs[i].title, songs[i].author, songs[i+1].timestamp));
+                needUpdateSongs.add(songs[i].copyWith(timestamp: songs[i+1].timestamp));
               }
             }
+            needUpdateSongs.add(songs[oldIndex].copyWith(timestamp: songs[newIndex].timestamp));
             controller.updateSongs(needUpdateSongs);
           },
           children: [
@@ -82,22 +82,31 @@ class SongListItem extends StatelessWidget {
 void _showEditDialog(int index, Song songItem, PlayListPageController controller) {
   final titleController = TextEditingController(text: songItem.title);
   final authorController = TextEditingController(text: songItem.author);
+  final imageUrlController = TextEditingController(text: songItem.imageUrl);
+  final lyricIdController = TextEditingController(text: songItem.lyricId);
+  final lyricBiasController = TextEditingController(text: songItem.lyricBias.toString());
 
   final showTitleClearButton = true.obs;
   final showAuthorClearButton = true.obs;
+  final showImageUrlClearButton = true.obs;
   titleController.addListener(() {
     showTitleClearButton.value = titleController.text.isNotEmpty;
   });
   authorController.addListener(() {
     showAuthorClearButton.value = authorController.text.isNotEmpty;
   });
+  imageUrlController.addListener(() {
+    showImageUrlClearButton.value = imageUrlController.text.isNotEmpty;
+  });
+
+  final dialogHeight = songItem.platform == 'bilibili' ? 370.0 : 220.0;
 
   Get.dialog(
     AlertDialog(
       title: const Text('Edit Song', style: TextStyle(fontFamily: 'Consolas')),
       content: SizedBox(
         width: 500,
-        height: 120,
+        height: dialogHeight,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -127,6 +136,59 @@ void _showEditDialog(int index, Song songItem, PlayListPageController controller
               ),
               controller: authorController,
             )),
+            Obx(() => TextField(
+              controller: imageUrlController,
+              decoration: InputDecoration(
+                labelText: 'Image Url',
+                labelStyle: const TextStyle(fontFamily: 'Consolas'),
+                suffixIcon: showImageUrlClearButton.value ?
+                IconButton(
+                  icon: const Icon(Icons.clear_rounded, color: Colors.grey),
+                  onPressed: () => imageUrlController.clear(),
+                ) :
+                IconButton(
+                  tooltip: 'Auto Fetch',
+                  icon: const Icon(Icons.auto_fix_high_rounded, color: Colors.grey),
+                  onPressed: () async {
+                    if (titleController.text.isNotEmpty && authorController.text.isNotEmpty) {
+                      imageUrlController.text = await controller.getImageUrlByTitleAndAuthor(
+                        titleController.text,
+                        authorController.text,
+                      );
+                    }
+                  },
+                )
+              ),
+            )),
+            if (songItem.platform == 'bilibili')
+              TextField(
+                controller: lyricIdController,
+                decoration: InputDecoration(
+                  labelText: 'Lyric Id (Netease)',
+                  labelStyle: const TextStyle(fontFamily: 'Consolas'),
+                  suffixIcon: IconButton(
+                    tooltip: 'Auto Fetch',
+                    icon: const Icon(Icons.auto_fix_high_rounded, color: Colors.grey),
+                    onPressed: () async {
+                      if (titleController.text.isNotEmpty && authorController.text.isNotEmpty) {
+                        lyricIdController.text = await controller.getIdByTitleAndAuthor(
+                          titleController.text,
+                          authorController.text,
+                        );
+                      }
+                    }
+                  )
+                ),
+              ),
+            if (songItem.platform == 'bilibili')
+              TextField(
+                controller: lyricBiasController,
+                decoration: const InputDecoration(
+                  labelText: 'Lyric Bias (ms)',
+                  labelStyle: TextStyle(fontFamily: 'Consolas'),
+                  helperText: 'Positive: lyrics appear later; Negative: earlier',
+                ),
+              )
           ],
         ),
       ),
@@ -147,7 +209,19 @@ void _showEditDialog(int index, Song songItem, PlayListPageController controller
         TextButton(
           child: const Text('SAVE', style: TextStyle(fontFamily: 'Consolas')),
           onPressed: () async {
-            await controller.updateSong(Song(songItem.id, songItem.cid, titleController.text, authorController.text, songItem.timestamp));
+            await controller.updateSong(
+              Song(
+                platform: songItem.platform,
+                id: songItem.id,
+                cid: songItem.cid,
+                title: titleController.text,
+                author: authorController.text,
+                imageUrl: imageUrlController.text,
+                lyricId: lyricIdController.text,
+                lyricBias: lyricBiasController.text.isEmpty ? 0 : int.parse(lyricBiasController.text),
+                timestamp: songItem.timestamp
+              )
+            );
             Get.back();
           },
         ),

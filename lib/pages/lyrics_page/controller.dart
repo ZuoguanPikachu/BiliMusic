@@ -5,16 +5,19 @@ import 'package:bili_music/models/song_model.dart';
 import 'package:bili_music/services/audio_play_service.dart';
 import 'package:bili_music/services/playlist_service.dart';
 import 'package:bili_music/services/bili_service.dart';
+import 'package:bili_music/services/netease_service.dart';
 
 
 class LyricsPageController extends GetxController {
   final audioPlayService = Get.find<AudioPlayService>();
   final playListService = Get.find<PlayListService>();
   final biliService = Get.find<BiliService>();
+  final neteaseService = Get.find<NeteaseService>();
 
   RxList<LyricsItem> lyrics = <LyricsItem>[].obs;
   RxInt currentLyricsIndex = (-1).obs;
 
+  int bias = 0;
   bool isUserScrolling = false;
   final ScrollController scrollController = ScrollController();
   final playerId = 'playlistPage';
@@ -29,7 +32,7 @@ class LyricsPageController extends GetxController {
 
     audioPlayService.position(playerId).listen((position) {
       if (lyrics.isNotEmpty) {
-        final newIndex = lyrics.lastIndexWhere((lyric) => position >= lyric.time);
+        final newIndex = lyrics.lastIndexWhere((lyric) => position >= lyric.time + Duration(milliseconds: bias));
         if (newIndex != currentLyricsIndex.value && newIndex >= -1) {
           currentLyricsIndex.value = newIndex;
           if (!isUserScrolling) {
@@ -38,7 +41,6 @@ class LyricsPageController extends GetxController {
         }
       }
     });
-
   }
 
   void scrollToCurrentLine() {
@@ -54,7 +56,19 @@ class LyricsPageController extends GetxController {
   }
 
   Future<void> loadLyrics(Song song) async {
-    final lyrics = await biliService.getLyricsFromSubtitle(song.id, cid: song.cid);
+    bias = song.lyricBias;
+
+    List<LyricsItem> lyrics = [];
+    if (song.platform == 'netease'){
+      lyrics = await neteaseService.getLyric(song.id);
+    }
+    else if (song.lyricId.isNotEmpty){
+      lyrics = await neteaseService.getLyric(song.lyricId);
+    }
+    else{
+      lyrics = await biliService.getLyricsFromSubtitle(song.id, cid: song.cid);
+    }
+
     this.lyrics.value = lyrics;
     currentLyricsIndex.value = -1;
     scrollToCurrentLine();
@@ -62,7 +76,7 @@ class LyricsPageController extends GetxController {
 
   void seekToLyric(int index) {
     if (index >= 0 && index < lyrics.length) {
-      audioPlayService.seek(playerId, lyrics[index].time);
+      audioPlayService.seek(playerId, lyrics[index].time + Duration(milliseconds: bias));
     }
   }
 

@@ -19,7 +19,7 @@ class SearchPage extends StatelessWidget {
             const Center(child: CircularProgressIndicator()) :
             ListView.builder(
               itemCount: controller.searchResults.length,
-              itemBuilder: (context, index) => SearchResultItemWidget(item: controller.searchResults[index], controller: controller),
+              itemBuilder: (context, index) => SearchResultItemWidget(searchResult: controller.searchResults[index], controller: controller),
             ),
           ),
         ),

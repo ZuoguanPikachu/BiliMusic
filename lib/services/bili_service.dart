@@ -8,7 +8,7 @@ import 'package:html/parser.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:get/get.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart' as inappwebview;
-import 'package:bili_music/models/search_result_item.dart';
+import 'package:bili_music/models/search_result.dart';
 import 'package:bili_music/models/lyrics_item.dart';
 
 
@@ -17,7 +17,6 @@ class BiliService {
   late PersistCookieJar cookieJar;
   late String imgKey;
   late String subKey;
-  int count = 0;
   Rx<bool> isLogin = false.obs;
   Rx<String> uName = ''.obs;
 
@@ -89,7 +88,6 @@ class BiliService {
   }
 
   Future getWbiKeys() async {
-    count += 1;
     try {
       final response = await dio.get('https://api.bilibili.com/x/web-interface/nav');
       final jsonContent = response.data;
@@ -138,7 +136,7 @@ class BiliService {
     return filteredParams;
   }
 
-  Future<List<SearchResultItem>> search(String keyword) async {
+  Future<List<BiliSearchResult>> search(String keyword) async {
     try {
       final response = await dio.get('https://api.bilibili.com/x/web-interface/wbi/search/type',
         queryParameters: encWbi({
@@ -152,13 +150,13 @@ class BiliService {
         throw Exception('Risk control triggered. Please log in BiliBili.');
       }
 
-      List<SearchResultItem> result = [];
+      List<BiliSearchResult> result = [];
       jsonContent['data']['result'].forEach((item) {
         if (item['type'] != 'video') {
           return;
         }
 
-        result.add(SearchResultItem(
+        result.add(BiliSearchResult(
           item['bvid'],
           extractContent(item['title']),
           item['author'],

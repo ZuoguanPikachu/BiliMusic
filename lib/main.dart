@@ -1,3 +1,4 @@
+import 'package:bili_music/services/netease_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
@@ -26,6 +27,7 @@ Future<void> main() async {
   Get.put(LLMService());
   Get.put(AudioPlayService());
   Get.put(PlayListService());
+  Get.put(NeteaseService());
 }
 
 class MyApp extends StatelessWidget {
