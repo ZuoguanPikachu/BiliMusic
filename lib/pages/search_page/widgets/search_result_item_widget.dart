@@ -9,7 +9,7 @@ import '../controller.dart';
 
 
 class SearchResultItemWidget extends StatelessWidget {
-  final BiliSearchResult searchResult;
+  final SearchResult searchResult;
   final searchPageController =  Get.find<SearchPageController>();
 
   SearchResultItemWidget({super.key, required this.searchResult});
@@ -85,7 +85,7 @@ class SearchResultItemWidget extends StatelessWidget {
   }
 }
 
-Future<void> _showAddSongDialog(BiliSearchResult item) async {
+Future<void> _showAddSongDialog(SearchResult item) async {
   final searchPageController = Get.find<SearchPageController>();
   final playListController = Get.find<PlayListController>();
 
@@ -108,7 +108,7 @@ Future<void> _showAddSongDialog(BiliSearchResult item) async {
         if (snapshot.hasError) {
           return AlertDialog(
             title: const Text('Error', style: TextStyle(fontFamily: 'Consolas')),
-            content: Text('Failed to fetch detail: ${snapshot.error}'),
+            content: Text(snapshot.error.toString(), style: const TextStyle(fontFamily: 'Consolas')),
             actions: [
               TextButton(
                 onPressed: () => Get.back(),
@@ -121,7 +121,7 @@ Future<void> _showAddSongDialog(BiliSearchResult item) async {
         // === 3. 加载成功 ===
         final detail = snapshot.data!;
         final newSong = Song(
-          platform: 'bilibili',
+          platform: item.platform,
           id: item.id,
           cid: detail.cid,
           title: detail.title,
@@ -135,7 +135,7 @@ Future<void> _showAddSongDialog(BiliSearchResult item) async {
         return SongFormDialog(
           title: 'Add Song',
           song: newSong,
-          isBilibili: true,
+          isBilibili: item.platform == 'Bili',
           onSubmit: (createdSong) async {
             await playListController.addSong(newSong);
             Get.back(); // 关闭 dialog

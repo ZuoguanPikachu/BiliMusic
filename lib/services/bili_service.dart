@@ -139,7 +139,7 @@ class BiliService {
     return filteredParams;
   }
 
-  Future<List<BiliSearchResult>> search(String keyword) async {
+  Future<List<SearchResult>> search(String keyword) async {
     try {
       final response = await dio.get('https://api.bilibili.com/x/web-interface/wbi/search/type',
         queryParameters: encWbi({
@@ -153,13 +153,14 @@ class BiliService {
         throw Exception('Risk control triggered. Please log in BiliBili.');
       }
 
-      List<BiliSearchResult> result = [];
+      List<SearchResult> result = [];
       jsonContent['data']['result'].forEach((item) {
         if (item['type'] != 'video') {
           return;
         }
 
-        result.add(BiliSearchResult(
+        result.add(SearchResult(
+          'Bili',
           item['bvid'],
           extractContent(item['title']),
           item['author'],

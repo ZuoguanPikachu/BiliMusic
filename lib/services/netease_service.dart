@@ -95,7 +95,7 @@ class NeteaseService {
     );
   }
 
-  Future<void> search(String s, {int searchType=1, int offset=0, int limit=10}) async {
+  Future<List<SearchResult>> search(String s, {int searchType=1, int offset=0, int limit=10}) async {
     final payload = {
       's': s,
       'type': searchType,
@@ -108,22 +108,41 @@ class NeteaseService {
       final response = await dio.post('https://music.163.com/weapi/cloudsearch/pc', data: encrypted);
       final jsonContent = json.decode(response.data);
 
-      List<NeteaseSearchResult> results = [];
-      jsonContent['result']['songs'].forEach((song) async {
-        num id = song['id'];
+      List<dynamic> songs = jsonContent['result']['songs'];
+      List<SearchResult> results = await Future.wait(songs.map((song) async {
+        String id = song['id'].toString();
         String title = song['name'];
-        String author = '';
-        song['ar'].forEach((artist){
-          author += artist['name'] + ' ';
-        });
-        author = author.trim();
+        String author = (song['ar'] as List)
+          .map((artist) => artist['name'])
+          .join(' ');
         String duration = formatDuration(song['dt']);
+        String imageUrl = await getImageUrl(id);
 
-        String imageUrl = await getImageUrl(id.toString());
-        results.add(NeteaseSearchResult(id, title, author, imageUrl, duration));
-      });
+        return SearchResult('Netease', id, title, author, imageUrl, duration);
+      }));
+
+      return results;
     } on DioException catch (e) {
       throw Exception('Failed to search in Netease Cloud Music: ${e.message}');
+    }
+  }
+
+  Future<String> getAudioUrl(String id, {String level='exhigh', String encode_type='acc'}) async {
+    final payload = {"ids": [id], "level": level, "encodeType": encode_type};
+    final encrypted = WEAPIEncryptor.encryptRequest(json.encode(payload));
+
+    try {
+      final response = await dio.post('https://music.163.com/weapi/song/enhance/player/url/v1', data: encrypted);
+      final jsonContent = json.decode(response.data);
+      final url = jsonContent['data'][0]['url'];
+
+      if (url == null) {
+        throw Exception('URL is null. This song may be VIP-only.');
+      }
+
+      return url;
+    } on DioException catch (e) {
+      throw Exception('Failed to get audio url: ${e.message}');
     }
   }
 

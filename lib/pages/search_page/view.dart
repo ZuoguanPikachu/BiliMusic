@@ -13,7 +13,7 @@ class SearchPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        MusicSearchBar(controller: controller),
+        MusicSearchBar(),
         Expanded(
           child: Obx(() => controller.isLoading.value ?
             const Center(child: CircularProgressIndicator()) :

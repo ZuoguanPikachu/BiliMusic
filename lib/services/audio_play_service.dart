@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math';
 import 'package:bili_music/models/search_result.dart';
 import 'package:bili_music/services/playlist_service.dart';
@@ -7,6 +6,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:bili_music/models/song_model.dart';
 import 'package:bili_music/models/play_mode.dart';
 import 'bili_service.dart';
+import 'netease_service.dart';
 import 'package:get/get.dart';
 
 
@@ -32,7 +32,7 @@ class AudioPlayService {
     }
   }
 
-  Future<void> play(String id, {int? index, BiliSearchResult? searchResult}) async {
+  Future<void> play(String id, {int? index, SearchResult? searchResult}) async {
     await stop('searchPage');
     await pause('playlistPage');
 
@@ -42,7 +42,7 @@ class AudioPlayService {
     } else if (id == 'playlistPage' && index == null){
       await playlistAudioPlayer.play();
     } else if (id =='searchPage' && searchResult!= null){
-      final url = await getAudioUrl(searchResult.id);
+      final url = await getAudioUrl(searchResult.id, searchResult.platform);
       await searchResultAudioPlayer.setUrl(url, headers: headers);
       await searchResultAudioPlayer.play();
     }
@@ -143,9 +143,15 @@ class PlaylistAudioPlayer extends BaseAudioHandler with SeekHandler {
   late PlayMode playMode;
   List<Song> shuffledSongs = [];
 
-  final headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
-    'Referer': 'https://www.bilibili.com/'
+  final headers_map = {
+    'Bili': {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+      'Referer': 'https://www.bilibili.com/'
+    },
+    'Netease': {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+      'Referer': 'https://music.163.com/'
+    }
   };
 
   PlaylistAudioPlayer() {
@@ -203,7 +209,9 @@ class PlaylistAudioPlayer extends BaseAudioHandler with SeekHandler {
     songs.sort((a, b) => -a.timestamp.compareTo(b.timestamp));
     final song = songs[index];
     setMediaItem(song);
-    await audioPlayer.setUrl(await getAudioUrl(song.id, cid: song.cid), headers: headers);
+
+    final platform = song.platform;
+    await audioPlayer.setUrl(await getAudioUrl(song.id, platform, cid: song.cid), headers: headers_map[platform]!);
     await play();
   }
 
@@ -303,7 +311,13 @@ Future<PlaylistAudioPlayer> initPlaylistAudioPlayer() async {
   );
 }
 
-Future<String> getAudioUrl(String id, {num? cid}) async {
-  final biliService = Get.find<BiliService>();
-  return await biliService.getAudioUrl(id, cid: cid);
+Future<String> getAudioUrl(String id, String platform, {num? cid}) async {
+  if (platform == 'Bili'){
+    final biliService = Get.find<BiliService>();
+    return await biliService.getAudioUrl(id, cid: cid);
+  }
+  else {
+    final neteaseService = Get.find<NeteaseService>();
+    return await neteaseService.getAudioUrl(id);
+  }
 }

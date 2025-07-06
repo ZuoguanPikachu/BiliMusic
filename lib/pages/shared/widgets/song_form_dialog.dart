@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:bili_music/models/song_model.dart';
 import 'clearable_text_field.dart';
-import 'song_edit_controller.dart';
+import '../controllers/song_edit_controller.dart';
 
 
 class SongFormDialog extends StatelessWidget {

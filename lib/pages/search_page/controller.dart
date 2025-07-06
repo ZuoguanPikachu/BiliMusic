@@ -16,13 +16,22 @@ class SearchPageController extends GetxController {
   final playListService = Get.find<PlayListService>();
   final playerId = 'searchPage';
 
-  RxList<BiliSearchResult> searchResults = <BiliSearchResult>[].obs;
+  final RxString selectedPlatform = 'Bili'.obs;
+  final List<String> platforms = ['Bili', 'Netease'];
+  RxList<SearchResult> searchResults = <SearchResult>[].obs;
   RxBool isLoading = false.obs;
 
   Future<void> search(String keyword) async{
     try {
       isLoading.value = true;
-      final results = await biliService.search(keyword);
+
+      List<SearchResult> results;
+      if (selectedPlatform.value == 'Bili'){
+        results = await biliService.search(keyword);
+      }
+      else{
+        results = await neteaseService.search(keyword);
+      }
       searchResults.value = results;
     } catch (e) {
       Get.snackbar('Error', '$e');
@@ -31,32 +40,48 @@ class SearchPageController extends GetxController {
     }
   }
 
-  Future<void> play(BiliSearchResult searchResult) async {
-    await audioPlayService.play(playerId, searchResult: searchResult);
+  Future<void> play(SearchResult searchResult) async {
+    try {
+      await audioPlayService.play(playerId, searchResult: searchResult);
+    }
+    catch (e) {
+      Get.snackbar('Error', '$e');
+    }
   }
 
-  Future<DetailInfo> getDetailInfo(BiliSearchResult info) async {
-    final results = await Future.wait([
-      llmService.extractInfo(info.title),
-      biliService.getCid(info.id),
-    ]);
+  Future<DetailInfo> getDetailInfo(SearchResult info) async {
+    DetailInfo detailInfo;
+    if (info.platform == 'Bili'){
+      final results = await Future.wait([
+        llmService.extractInfo(info.title),
+        biliService.getCid(info.id),
+      ]);
 
-    final detailInfo = results[0] as DetailInfo;
+      detailInfo = results[0] as DetailInfo;
+      if (detailInfo.title.isNotEmpty && detailInfo.author.isNotEmpty){
+        final lyricId = await neteaseService.getIdByTitleAndAuthor(detailInfo.title, detailInfo.author);
+        final imageUrl = await neteaseService.getImageUrl(lyricId);
 
-    if (detailInfo.title.isNotEmpty && detailInfo.author.isNotEmpty){
-      final lyricId = await neteaseService.getIdByTitleAndAuthor(detailInfo.title, detailInfo.author);
-      final imageUrl = await neteaseService.getImageUrl(lyricId);
+        detailInfo.lyricId = lyricId;
+        detailInfo.imageUrl = imageUrl;
+      }
 
-      detailInfo.lyricId = lyricId;
-      detailInfo.imageUrl = imageUrl;
-    }
+      if (detailInfo.title.isEmpty){
+        detailInfo.title = info.title;
+      }
 
-    if (detailInfo.title.isEmpty){
+      final cid = results[1] as num;
+      detailInfo.cid = cid;
+    }else{
+      final _ = await neteaseService.getAudioUrl(info.id);
+
+      detailInfo = DetailInfo();
       detailInfo.title = info.title;
+      detailInfo.author = info.author;
+      detailInfo.lyricId = info.id;
+      detailInfo.imageUrl = info.imageUrl;
+      detailInfo.cid = 0;
     }
-
-    final cid = results[1] as num;
-    detailInfo.cid = cid;
 
     return detailInfo;
   }

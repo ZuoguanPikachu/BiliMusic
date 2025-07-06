@@ -85,7 +85,7 @@ void _showEditDialog(Song song) {
   Get.dialog(SongFormDialog(
     title: 'Edit Song',
     song: song,
-    isBilibili: song.platform == 'bilibili',
+    isBilibili: song.platform == 'Bili',
     onDelete: () => playListController.removeSong(song),
     onSubmit: (updated) => playListController.updateSong(updated),
   ));
