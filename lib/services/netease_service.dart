@@ -148,6 +148,9 @@ class NeteaseService {
           final matches = timeRegex.allMatches(line);
           if (matches.isEmpty) continue;
 
+          final text = line.replaceAll(timeRegex, '').trim();
+          if (text.isEmpty) continue;
+
           final times = matches.map((match) {
             final minutes = int.parse(match.group(1)!);
             final seconds = int.parse(match.group(2)!);
@@ -161,9 +164,7 @@ class NeteaseService {
               milliseconds: milliseconds,
             );
           }).toList();
-
-          final text = line.replaceAll(timeRegex, '').trim();
-
+          
           for (final time in times) {
             result.add(LyricsItem(time, text));
           }

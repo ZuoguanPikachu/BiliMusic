@@ -26,7 +26,6 @@ class CookieLoader extends StatelessWidget {
               List<Cookie> cookies = await cookieManager.getCookies(url: url);
               if (cookies.length >= 8){
                 await biliService.init(cookies);
-                print('load stop url: $url');
               }
             }
           }

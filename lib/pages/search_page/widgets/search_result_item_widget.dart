@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:bili_music/models/search_result.dart';
+import 'package:bili_music/pages/shared/index.dart';
+import 'package:bili_music/models/song_model.dart';
 import 'package:bili_music/models/detail_info.dart';
 import '../controller.dart';
 
@@ -84,129 +86,68 @@ class SearchResultItemWidget extends StatelessWidget {
 }
 
 Future<void> _showAddSongDialog(BiliSearchResult item, SearchPageController controller) async {
-  final titleController = TextEditingController();
-  final authorController = TextEditingController();
-  final imageUrlController = TextEditingController();
-
-  final showTitleClearButton = false.obs;
-  final showAuthorClearButton = false.obs;
-  final showImageUrlClearButton = false.obs;
-
-  titleController.addListener(() {
-    showTitleClearButton.value = titleController.text.isNotEmpty;
-  });
-  authorController.addListener(() {
-    showAuthorClearButton.value = authorController.text.isNotEmpty;
-  });
-  imageUrlController.addListener(() {
-    showImageUrlClearButton.value = imageUrlController.text.isNotEmpty;
-  });
 
   Get.dialog(
-    FutureBuilder(
+    FutureBuilder<DetailInfo>(
       future: controller.getDetailInfo(item),
       builder: (context, snapshot) {
-        List<Widget> contentChildren;
-        List<Widget>? actions;
 
-        if (snapshot.hasData) {
-          final DetailInfo detailInfo = snapshot.data!;
-          titleController.text = detailInfo.title;
-          authorController.text = detailInfo.author;
-          imageUrlController.text = detailInfo.imageUrl;
-
-          contentChildren = [
-            Obx(() => TextField(
-              controller: titleController,
-              decoration: InputDecoration(
-                labelText: 'Title',
-                labelStyle: const TextStyle(fontFamily: 'Consolas'),
-                suffixIcon: showTitleClearButton.value ?
-                IconButton(
-                  icon: const Icon(Icons.clear_rounded, color: Colors.grey),
-                  onPressed: () => titleController.clear(),
-                ) :
-                null,
-              ),
-            )),
-            Obx(() => TextField(
-              controller: authorController,
-              decoration: InputDecoration(
-                labelText: 'Author',
-                labelStyle: const TextStyle(fontFamily: 'Consolas'),
-                suffixIcon: showAuthorClearButton.value ?
-                IconButton(
-                  icon: const Icon(Icons.clear_rounded, color: Colors.grey),
-                  onPressed: () => authorController.clear(),
-                ) :
-                null,
-              ),
-            )),
-            Obx(() => TextField(
-              controller: imageUrlController,
-              decoration: InputDecoration(
-                labelText: 'Image Url',
-                labelStyle: const TextStyle(fontFamily: 'Consolas'),
-                suffixIcon: showImageUrlClearButton.value ?
-                IconButton(
-                  icon: const Icon(Icons.clear_rounded, color: Colors.grey),
-                  onPressed: () => imageUrlController.clear(),
-                ) :
-                IconButton(
-                  tooltip: 'Auto Fetch',
-                  icon: const Icon(Icons.auto_fix_high_rounded, color: Colors.grey),
-                  onPressed: () async {
-                    if (titleController.text.isNotEmpty && authorController.text.isNotEmpty) {
-                      imageUrlController.text = await controller.getImageUrlByTitleAndAuthor(
-                        titleController.text,
-                        authorController.text,
-                      );
-                    }
-                  },
-                )
-              ),
-            ))
-          ];
-          actions = [
-            TextButton(onPressed: () => Get.back(), child: const Text('CANCEL', style: TextStyle(fontFamily: 'Consolas'))),
-            TextButton(
-              onPressed: () async {
-                await controller.addToPlaylist(item.id, detailInfo.cid, titleController.text, authorController.text, imageUrlController.text);
-                Get.back();
-                Get.snackbar('Tips', 'Song Added Successfully!');
-              },
-              child: const Text('ADD', style: TextStyle(fontFamily: 'Consolas')),
-            )
-          ];
-        } else if (snapshot.hasError) {
-          contentChildren = [
-            Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(fontFamily: 'Consolas')))
-          ];
-          actions = [
-            TextButton(onPressed: () => Get.back(), child: const Text('OK', style: TextStyle(fontFamily: 'Consolas'))),
-          ];
-        } else {
-          contentChildren = [
-            const Center(child: CircularProgressIndicator())
-          ];
-          actions = [
-            TextButton(onPressed: () => Get.back(), child: const Text('CANCEL', style: TextStyle(fontFamily: 'Consolas'))),
-          ];
+        // === 1. 加载中状态 ===
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const AlertDialog(
+            content: SizedBox(
+              height: 100,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
         }
 
-        return AlertDialog(
-          title: const Text('Add Song', style: TextStyle(fontFamily: 'Consolas')),
-          content: SizedBox(
-            width: 500,
-            height: 220,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: contentChildren,
-            ),
-          ),
-          actions: actions,
+        // === 2. 错误状态 ===
+        if (snapshot.hasError) {
+          return AlertDialog(
+            title: const Text('Error', style: TextStyle(fontFamily: 'Consolas')),
+            content: Text('Failed to fetch detail: ${snapshot.error}'),
+            actions: [
+              TextButton(
+                onPressed: () => Get.back(),
+                child: const Text('OK', style: TextStyle(fontFamily: 'Consolas')),
+              )
+            ],
+          );
+        }
+
+        // === 3. 加载成功 ===
+        final detail = snapshot.data!;
+        final newSong = Song(
+          platform: 'bilibili',
+          id: item.id,
+          cid: detail.cid,
+          title: detail.title,
+          author: detail.author,
+          imageUrl: detail.imageUrl,
+          lyricId: detail.lyricId,
+          lyricBias: 0,
+          timestamp: DateTime.now().millisecondsSinceEpoch,
         );
-      }
-    )
+
+        return SongFormDialog(
+          title: 'Add Song',
+          song: newSong,
+          isBilibili: true,
+          onSubmit: (createdSong) async {
+            await controller.addToPlaylist(
+              createdSong.id,
+              createdSong.cid,
+              createdSong.title,
+              createdSong.author,
+              createdSong.imageUrl,
+            );
+            Get.back(); // 关闭 dialog
+            Get.snackbar('Tips', 'Song Added Successfully!');
+          },
+        );
+      },
+    ),
+    barrierDismissible: false,
   );
 }

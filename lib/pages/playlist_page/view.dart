@@ -3,17 +3,18 @@ import 'package:get/get.dart';
 import 'package:bili_music/services/bili_service.dart';
 import 'widgets/playing_bar.dart';
 import 'widgets/song_list.dart';
-import 'widgets//cookie_loader .dart';
+import 'widgets/cookie_loader.dart';
 import 'controller.dart';
 
 
 class PlayListPage extends StatelessWidget {
   PlayListPage({super.key});
-  final controller = Get.put(PlayListPageController());
   final biliService = Get.find<BiliService>();
 
   @override
   Widget build(BuildContext context) {
+    Get.put(AudioPlayerController());
+    Get.put(PlayListController());
 
     return SafeArea(
       child: Column(
@@ -22,11 +23,10 @@ class PlayListPage extends StatelessWidget {
             ? const SizedBox.shrink()
             : CookieLoader()
           ),
-          Expanded(
-            child: SongList(controller: controller),
+          const Expanded(
+            child: SongList(),
           ),
-          PlayingBar(controller: controller),
-
+          const PlayingBar(),
         ]
       )
     );

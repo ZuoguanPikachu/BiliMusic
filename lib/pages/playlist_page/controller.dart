@@ -9,13 +9,9 @@ import 'package:bili_music/models/play_mode.dart';
 import 'package:bili_music/services/netease_service.dart';
 
 
-class PlayListPageController extends GetxController {
-  final biliService = Get.find<BiliService>();
-  final neteaseService = Get.find<NeteaseService>();
-  final playListService = Get.find<PlayListService>();
+class AudioPlayerController extends GetxController {
   final audioPlayService = Get.find<AudioPlayService>();
   final playerId = 'playlistPage';
-  bool isInitialized = false;
 
   Rx<Duration> duration = Duration.zero.obs;
   Rx<Duration> position = Duration.zero.obs;
@@ -28,54 +24,47 @@ class PlayListPageController extends GetxController {
   Future<void> onInit() async {
     super.onInit();
     await audioPlayService.init();
-    isInitialized = true;
     audioPlayService.setPlayMode(playerId, playMode.value);
+
     ever(audioPlayService.currentSong(playerId), (song) => currentSong.value = song);
     ever(audioPlayService.currentIndex(playerId), (index) => currentIndex.value = index);
-
     audioPlayService.position(playerId).listen((p) => position.value = p);
     audioPlayService.duration(playerId).listen((d) => duration.value = d ?? Duration.zero);
-    audioPlayService.playerState(playerId).listen((state) async {
-      isPlaying.value = state.playing;
+    audioPlayService.playerState(playerId).listen((state) => _onPlayerState(state));
+  }
 
-      if (state.processingState == ProcessingState.completed && isPlaying.value){
-        if (playMode.value == PlayMode.single){
-          await audioPlayService.play(playerId, index: currentIndex.value);
-        }
-        else{
-          await audioPlayService.playNext(playerId);
-        }
+  void _onPlayerState(PlayerState state) async {
+    isPlaying.value = state.playing;
+    if (state.processingState == ProcessingState.completed && isPlaying.value) {
+      if (playMode.value == PlayMode.single) {
+        await audioPlayService.play(playerId, index: currentIndex.value);
+      } else {
+        await audioPlayService.playNext(playerId);
       }
-    });
+    }
   }
 
-  Future<void> play(int index) async {
-    await audioPlayService.play(playerId, index: index);
-  }
+  Future<void> play(int index) async => audioPlayService.play(playerId, index: index);
+  Future<void> pause() async => audioPlayService.pause(playerId);
+  Future<void> resume() async => audioPlayService.play(playerId);
+  Future<void> seek(Duration pos) async => audioPlayService.seek(playerId, pos);
+  Future<void> playPrevious() async => audioPlayService.playPrevious(playerId);
+  Future<void> playNext() async => audioPlayService.playNext(playerId);
 
-  Future<void> playPrevious() async {
-    await audioPlayService.playPrevious(playerId);
+  void switchPlayMode() {
+    playMode.value = PlayMode.values[(playMode.value.index + 1) % PlayMode.values.length];
+    Hive.box('play_settings').put('play_mode', playMode.value.index);
+    audioPlayService.setPlayMode(playerId, playMode.value);
   }
+}
 
-  Future<void> playNext() async {
-    await audioPlayService.playNext(playerId);
-  }
+class PlayListController extends GetxController {
+  final playListService = Get.find<PlayListService>();
+  final audioPlayService = Get.find<AudioPlayService>();
+  final playerId = 'playlistPage';
 
-  Future<void> pause() async {
-    await audioPlayService.pause(playerId);
-  }
 
-  Future<void> resume() async {
-    await audioPlayService.play(playerId);
-  }
-
-  Future<void> seek(Duration position) async {
-    await audioPlayService.seek(playerId, position);
-  }
-
-  Future<void> updateSong(Song song) async {
-    await playListService.addSong(song);
-  }
+  Future<void> updateSong(Song song) async => playListService.addSong(song);
 
   Future<void> updateSongs(List<Song> songs) async {
     await playListService.addSongs(songs);
@@ -87,17 +76,5 @@ class PlayListPageController extends GetxController {
     audioPlayService.updateIndex(playerId);
   }
 
-  void switchPlayMode() async {
-    playMode.value = PlayMode.values[(playMode.value.index + 1) % PlayMode.values.length];
-    Hive.box('play_settings').put('play_mode', playMode.value.index);
-    audioPlayService.setPlayMode(playerId, playMode.value);
-  }
-
-  Future<String> getImageUrlByTitleAndAuthor(String title, String author) async {
-    return await neteaseService.getImageUrlByTitleAndAuthor(title, author);
-  }
-
-  Future<String> getIdByTitleAndAuthor(String title, String author) async {
-    return await neteaseService.getIdByTitleAndAuthor(title, author);
-  }
+  Box<Song> get songBox => playListService.getBox();
 }

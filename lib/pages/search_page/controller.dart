@@ -53,7 +53,10 @@ class SearchPageController extends GetxController {
     final detailInfo = results[0] as DetailInfo;
 
     if (detailInfo.title.isNotEmpty && detailInfo.author.isNotEmpty){
-      final imageUrl = await getImageUrlByTitleAndAuthor(detailInfo.title, detailInfo.author);
+      final lyricId = await neteaseService.getIdByTitleAndAuthor(detailInfo.title, detailInfo.author);
+      final imageUrl = await neteaseService.getImageUrl(lyricId);
+
+      detailInfo.lyricId = lyricId;
       detailInfo.imageUrl = imageUrl;
     }
 
@@ -65,9 +68,5 @@ class SearchPageController extends GetxController {
     detailInfo.cid = cid;
 
     return detailInfo;
-  }
-
-  Future<String> getImageUrlByTitleAndAuthor(String title, String author) async {
-    return await neteaseService.getImageUrlByTitleAndAuthor(title, author);
   }
 }
