@@ -137,8 +137,8 @@ Future<void> _showAddSongDialog(SearchResult item) async {
           song: newSong,
           isBilibili: item.platform == 'Bili',
           onSubmit: (createdSong) async {
-            await playListController.addSong(newSong);
-            Get.back(); // 关闭 dialog
+            await playListController.addSong(createdSong);
+            Get.back();
             Get.snackbar('Tips', 'Song Added Successfully!');
           },
         );
