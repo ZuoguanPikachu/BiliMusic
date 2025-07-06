@@ -10,14 +10,14 @@ import '../controller.dart';
 
 class SearchResultItemWidget extends StatelessWidget {
   final BiliSearchResult searchResult;
-  final SearchPageController controller;
+  final searchPageController =  Get.find<SearchPageController>();
 
-  const SearchResultItemWidget({super.key, required this.searchResult, required this.controller});
+  SearchResultItemWidget({super.key, required this.searchResult});
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () async => await controller.play(searchResult),
+      onTap: () async => await searchPageController.play(searchResult),
       child: Row(
         children: [
           Container(
@@ -70,7 +70,7 @@ class SearchResultItemWidget extends StatelessWidget {
                         IconButton(
                           icon: const Icon(Icons.add),
                           iconSize: 20,
-                          onPressed: () async => await _showAddSongDialog(searchResult, controller),
+                          onPressed: () async => await _showAddSongDialog(searchResult),
                         )
                       ],
                     )
@@ -85,11 +85,13 @@ class SearchResultItemWidget extends StatelessWidget {
   }
 }
 
-Future<void> _showAddSongDialog(BiliSearchResult item, SearchPageController controller) async {
+Future<void> _showAddSongDialog(BiliSearchResult item) async {
+  final searchPageController = Get.find<SearchPageController>();
+  final playListController = Get.find<PlayListController>();
 
   Get.dialog(
     FutureBuilder<DetailInfo>(
-      future: controller.getDetailInfo(item),
+      future: searchPageController.getDetailInfo(item),
       builder: (context, snapshot) {
 
         // === 1. 加载中状态 ===
@@ -135,13 +137,7 @@ Future<void> _showAddSongDialog(BiliSearchResult item, SearchPageController cont
           song: newSong,
           isBilibili: true,
           onSubmit: (createdSong) async {
-            await controller.addToPlaylist(
-              createdSong.id,
-              createdSong.cid,
-              createdSong.title,
-              createdSong.author,
-              createdSong.imageUrl,
-            );
+            await playListController.addSong(newSong);
             Get.back(); // 关闭 dialog
             Get.snackbar('Tips', 'Song Added Successfully!');
           },

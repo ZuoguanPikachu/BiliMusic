@@ -4,7 +4,6 @@ import 'package:bili_music/services/bili_service.dart';
 import 'package:bili_music/services/audio_play_service.dart';
 import 'package:bili_music/services/playlist_service.dart';
 import 'package:bili_music/services/llm_service.dart';
-import 'package:bili_music/models/song_model.dart';
 import 'package:bili_music/models/search_result.dart';
 import 'package:bili_music/models/detail_info.dart';
 
@@ -34,14 +33,6 @@ class SearchPageController extends GetxController {
 
   Future<void> play(BiliSearchResult searchResult) async {
     await audioPlayService.play(playerId, searchResult: searchResult);
-  }
-
-  Future<void> addToPlaylist(String id, num cid, String title, String author, String imageUrl) async {
-    int timestamp = DateTime.now().millisecondsSinceEpoch;
-    final song = Song(platform: 'bilibili', id: id, cid: cid, title: title, author: author,  imageUrl: imageUrl, lyricId: '', lyricBias: 0, timestamp: timestamp);
-    await playListService.addSong(song);
-
-    audioPlayService.updateIndex('playlistPage');
   }
 
   Future<DetailInfo> getDetailInfo(BiliSearchResult info) async {

@@ -4,6 +4,7 @@ import 'package:bili_music/services/bili_service.dart';
 import 'widgets/playing_bar.dart';
 import 'widgets/song_list.dart';
 import 'widgets/cookie_loader.dart';
+import '../shared/index.dart';
 import 'controller.dart';
 
 
