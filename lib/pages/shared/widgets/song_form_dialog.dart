@@ -57,17 +57,6 @@ class SongFormDialog extends StatelessWidget {
               ),
               if (isBilibili)
                 ClearableTextField(
-                  controller: imageUrlController,
-                  label: 'Image Url',
-                  onAutoFill: () async {
-                    imageUrlController.text = await songEditController.getImageUrl(
-                      titleController.text,
-                      authorController.text,
-                    );
-                  },
-                ),
-              if (isBilibili)
-                ClearableTextField(
                   controller: lyricIdController,
                   label: 'Lyric Id (Netease)',
                   onAutoFill: () async {
@@ -85,7 +74,19 @@ class SongFormDialog extends StatelessWidget {
                     labelStyle: TextStyle(fontFamily: 'Consolas'),
                     helperText: 'Positive: lyrics appear later; Negative: earlier',
                   ),
-                )
+                ),
+              if (isBilibili)
+                ClearableTextField(
+                  controller: imageUrlController,
+                  label: 'Image Url',
+                  onAutoFill: () async {
+                    imageUrlController.text = await songEditController.getImageUrl(
+                      titleController.text,
+                      authorController.text,
+                      lyricIdController.text,
+                    );
+                  },
+                ),
             ]
           ))
         )

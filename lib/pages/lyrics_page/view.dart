@@ -42,13 +42,16 @@ class LyricsPage extends StatelessWidget {
                     child: SizedBox(
                       height: 55,
                       child: Center(
-                        child: Text(item.text,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: isCurrent? 20 : 16,
-                            color: isCurrent? Theme.of(context).colorScheme.primary : Colors.black,
-                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                          ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(item.text,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: isCurrent? 20 : 16,
+                              color: isCurrent? Theme.of(context).colorScheme.primary : Colors.black,
+                              fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          )
                         )
                       ),
                     ),
