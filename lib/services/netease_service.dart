@@ -88,7 +88,6 @@ class NeteaseService {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
           'Referer': 'https://music.163.com/',
           'Origin': 'https://music.163.com',
-          'Host': 'music.163.com',
           'Content-Type': 'application/x-www-form-urlencoded'
         },
       ),
@@ -96,6 +95,17 @@ class NeteaseService {
   }
 
   Future<List<SearchResult>> search(String s, {int searchType=1, int offset=0, int limit=10}) async {
+    if (s.contains('https://163cn.tv/')){
+      final response = await dio.get(extractUrl(s)!);
+      return await searchById(extractSongId(response.realUri.toString())!);
+    }
+    else if (s.contains('https://music.163.com/') && s.contains('song?id=')){
+      return await searchById(extractSongId(s)!);
+    }
+    else if (RegExp(r'^\d+$').hasMatch(s)){
+      return await searchById(s);
+    }
+
     final payload = {
       's': s,
       'type': searchType,
@@ -116,12 +126,36 @@ class NeteaseService {
           .map((artist) => artist['name'])
           .join(' ');
         String duration = formatDuration(song['dt']);
-        String imageUrl = await getImageUrl(id);
+        String imageUrl = await getImageUrl(id: id);
 
         return SearchResult('Netease', id, title, author, imageUrl, duration);
       }));
 
       return results;
+    } on DioException catch (e) {
+      throw Exception('Failed to search in Netease Cloud Music: ${e.message}');
+    }
+  }
+
+  Future<List<SearchResult>> searchById(String id) async {
+    try {
+      final response = await dio.get('https://music.163.com/song', queryParameters: {'id': id});
+      final html = response.data;
+      Document document = parse(html);
+
+      Element? titleMeta = document.head?.querySelector('meta[property="og:title"]');
+      String title = titleMeta?.attributes['content'] ?? '';
+
+      Element? artistMeta = document.head?.querySelector('meta[property="og:music:artist"]');
+      String artist = artistMeta?.attributes['content'] ?? '';
+      artist = artist.replaceAll('/', ' ');
+
+      Element? durationMeta = document.head?.querySelector('meta[property="music:duration"]');
+      String duration = durationMeta?.attributes['content'] ?? '';
+      duration = formatDurationFromStr(duration);
+
+      String imageUrl = await getImageUrl(id: id);
+      return [SearchResult('Netease', id, title, artist, imageUrl, duration)];
     } on DioException catch (e) {
       throw Exception('Failed to search in Netease Cloud Music: ${e.message}');
     }
@@ -222,19 +256,26 @@ class NeteaseService {
   }
 
   Future<String> getImageUrlByTitleAndAuthor(String title, String author) async {
-    final id = await getIdByTitleAndAuthor(title, author);
+    var id = await getIdByTitleAndAuthor(title, author);
     if (id == '') {
       return '';
     }
-    return await getImageUrl(id);
+    return await getImageUrl(id: id);
   }
 
-  Future<String> getImageUrl(String id) async {
+  Future<Document> getSongHtml(String id) async {
     final response = await dio.get('https://music.163.com/song', queryParameters: {'id': id});
     final html = response.data;
-    Document document = parse(html);
-    Element? meta = document.head?.querySelector('meta[property="og:image"]');
-    String imageUrl = meta?.attributes['content'] ?? '';
+    return parse(html);
+  }
+
+  Future<String> getImageUrl({String? id, Document? document}) async {
+    if (id != null){
+      document = await getSongHtml(id);
+    }
+
+    Element? imgUrlMeta = document!.head?.querySelector('meta[property="og:image"]');
+    String imageUrl = imgUrlMeta?.attributes['content'] ?? '';
     if (imageUrl.isNotEmpty){
       return '$imageUrl?param=500y500';
     }
@@ -249,5 +290,27 @@ class NeteaseService {
     String seconds = twoDigits(duration.inSeconds.remainder(60));
 
     return '$minutes:$seconds';
+  }
+
+  String formatDurationFromStr(String secondsStr) {
+    int totalSeconds = int.tryParse(secondsStr) ?? 0;
+    int minutes = totalSeconds ~/ 60;
+    int seconds = totalSeconds % 60;
+
+    String minutesStr = minutes.toString().padLeft(2, '0');
+    String secondsStrFormatted = seconds.toString().padLeft(2, '0');
+    return '$minutesStr:$secondsStrFormatted';
+  }
+
+  String? extractUrl(String text) {
+    final regex = RegExp(r'https?://[^\s)]+');
+    final match = regex.firstMatch(text);
+    return match?.group(0);
+  }
+
+  String? extractSongId(String url) {
+    final regex = RegExp(r'[?&]id=(\d+)');
+    final match = regex.firstMatch(url);
+    return match?.group(1);
   }
 }

@@ -60,7 +60,7 @@ class SearchPageController extends GetxController {
       detailInfo = results[0] as DetailInfo;
       if (detailInfo.title.isNotEmpty && detailInfo.author.isNotEmpty){
         final lyricId = await neteaseService.getIdByTitleAndAuthor(detailInfo.title, detailInfo.author);
-        final imageUrl = await neteaseService.getImageUrl(lyricId);
+        final imageUrl = await neteaseService.getImageUrl(id: lyricId);
 
         detailInfo.lyricId = lyricId;
         detailInfo.imageUrl = imageUrl;

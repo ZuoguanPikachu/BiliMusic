@@ -140,6 +140,14 @@ class BiliService {
   }
 
   Future<List<SearchResult>> search(String keyword) async {
+    if (keyword.contains('https://b23.tv/')){
+      final response = await dio.get(extractUrl(keyword)!);
+      keyword = extractBvId(response.realUri.toString())!;
+    }
+    else if (keyword.contains('https://www.bilibili.com/video/BV')){
+      keyword = extractBvId(keyword)!;
+    }
+
     try {
       final response = await dio.get('https://api.bilibili.com/x/web-interface/wbi/search/type',
         queryParameters: encWbi({
@@ -247,5 +255,17 @@ class BiliService {
     String minutes = parts[0].padLeft(2, '0');
     String seconds = parts[1].padLeft(2, '0');
     return '$minutes:$seconds';
+  }
+
+  String? extractBvId(String url) {
+    final regex = RegExp(r'/video/(BV[0-9A-Za-z]+)');
+    final match = regex.firstMatch(url);
+    return match?.group(1);
+  }
+
+  String? extractUrl(String text) {
+    final regex = RegExp(r'https?://[^\s)]+');
+    final match = regex.firstMatch(text);
+    return match?.group(0);
   }
 }

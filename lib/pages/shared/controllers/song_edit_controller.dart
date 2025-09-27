@@ -7,7 +7,7 @@ class SongEditController extends GetxController {
 
   Future<String> getImageUrl(String title, String author, String id) async {
     if (id.isNotEmpty){
-      return await neteaseService.getImageUrl(id);
+      return await neteaseService.getImageUrl(id: id);
     }
     else{
       return await neteaseService.getImageUrlByTitleAndAuthor(title, author);
