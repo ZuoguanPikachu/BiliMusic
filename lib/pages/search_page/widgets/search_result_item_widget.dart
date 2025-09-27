@@ -66,7 +66,11 @@ class SearchResultItemWidget extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(searchResult.author, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                        Expanded(child: Text(searchResult.author,
+                            style: const TextStyle(fontSize: 14, color: Colors.grey),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )),
                         IconButton(
                           icon: const Icon(Icons.add),
                           iconSize: 20,
