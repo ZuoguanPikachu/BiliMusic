@@ -125,7 +125,7 @@ class NeteaseService {
         String author = (song['ar'] as List)
           .map((artist) => artist['name'])
           .join(' ');
-        String duration = formatDuration(song['dt']);
+        String duration = formatDurationFromMillis(song['dt']);
         String imageUrl = await getImageUrl(id: id);
 
         return SearchResult('Netease', id, title, author, imageUrl, duration);
@@ -152,7 +152,7 @@ class NeteaseService {
 
       Element? durationMeta = document.head?.querySelector('meta[property="music:duration"]');
       String duration = durationMeta?.attributes['content'] ?? '';
-      duration = formatDurationFromStr(duration);
+      duration = formatDurationFromSeconds(duration);
 
       String imageUrl = await getImageUrl(id: id);
       return [SearchResult('Netease', id, title, artist, imageUrl, duration)];
@@ -282,7 +282,7 @@ class NeteaseService {
     return '';
   }
 
-  String formatDuration(int milliseconds) {
+  String formatDurationFromMillis(int milliseconds) {
     Duration duration = Duration(milliseconds: milliseconds);
     String twoDigits(int n) => n.toString().padLeft(2, '0');
 
@@ -292,7 +292,7 @@ class NeteaseService {
     return '$minutes:$seconds';
   }
 
-  String formatDurationFromStr(String secondsStr) {
+  String formatDurationFromSeconds(String secondsStr) {
     int totalSeconds = int.tryParse(secondsStr) ?? 0;
     int minutes = totalSeconds ~/ 60;
     int seconds = totalSeconds % 60;

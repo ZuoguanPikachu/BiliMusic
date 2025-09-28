@@ -31,7 +31,7 @@
 
   * 如果未添加LLM API，可在手动输入歌曲名称和歌手，点击Auto Fetch按钮获取
 
-    <img src="doc/auto_fetch.jpg" alt="demo" style="zoom: 67%;" />
+    ![](doc/auto_fetch.jpg)
 
   * 一些网易云已下架的音乐，无法用网易云的API进行搜索，但是依旧能被搜索引擎找到，如[枫 - 周杰伦](https://music.163.com/#/song?id=185912)。所以能够通过直接输入歌曲ID获取歌词、歌曲封面。
 
