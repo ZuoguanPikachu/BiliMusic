@@ -2,7 +2,9 @@
 
 使用 Flutter 开发的，以 BiliBili 为音频源的音乐播放器。
 
-![demo](doc/demo.png)
+## ⚠️ 项目状态
+
+本项目**已经停止更新**。已使用 Kotlin Multiplatform (KMP) 重构并推出全新版本[BiliMusicKMP](https://github.com/ZuoguanPikachu/BiliMusicKMP)，支持 Android 和 Windows 平台。
 
 ## 功能
 
@@ -41,7 +43,9 @@
 
 - [ ] More
 
+## 截图
 
+![demo](doc/demo.png)
 
 ## 感谢
 
